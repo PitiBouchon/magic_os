@@ -1,0 +1,10 @@
+# Rust
+/target
+Cargo.lock
+
+# Jetbrains IDE
+.idea
+magic_os.iml
+
+# Visual Studio Code
+.vscode
