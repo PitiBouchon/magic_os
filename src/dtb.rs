@@ -105,6 +105,7 @@ impl FdtHeader {
                 break;
             }
             sbi_print_str("Addr: ");
+            // If I change entry.address -> entry.address.to_be() it crashes here
             sbi_println_number_base10(entry.address as usize);
             sbi_print_str("Size: ");
             sbi_println_number_base10(entry.size as usize);
