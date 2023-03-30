@@ -2,6 +2,7 @@
 #![no_main]
 
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 
 mod start;
 mod trap;

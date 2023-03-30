@@ -60,8 +60,6 @@ impl FdtHeader {
         assert!(fdt_header.off_dt_struct + fdt_header.size_dt_struct < fdt_header.total_size, "Size problem");
         assert!(fdt_header.off_dt_strings + fdt_header.size_dt_strings < fdt_header.total_size, "Size problem");
 
-        // fdt_header.print_things();
-
         let buf = unsafe {
             &*slice_from_raw_parts(dtb as *const u8, fdt_header.total_size as usize)
         };
@@ -71,6 +69,7 @@ impl FdtHeader {
 
         let fdt = fdt::Fdt::new(buf).unwrap();
 
+        sbi_print_str("Cpus: ");
         let cpus_number = fdt.cpus().count();
         sbi_println_number_base10(cpus_number);
     }
