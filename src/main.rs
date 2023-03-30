@@ -14,7 +14,7 @@ use riscv::register::stvec::TrapMode;
 use crate::dtb::FdtHeader;
 use crate::sbi_print::sbi_println_str;
 
-const OS_STACK_SIZE: usize = 8192;
+const OS_STACK_SIZE: usize = 65536;
 
 #[repr(C, align(16))]
 struct Stack([u8; OS_STACK_SIZE]);

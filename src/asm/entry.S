@@ -1,5 +1,5 @@
 .section .text.entry
-.equ STACK_SIZE, 8192 # Must be the same value as in main.rs
+.equ STACK_SIZE, 65536 # Must be the same value as in main.rs
 .global _entry
 _entry:
 	la sp, STACK0 # Must be the same name as in main.rs
