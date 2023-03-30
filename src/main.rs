@@ -1,7 +1,5 @@
 #![no_std]
 #![no_main]
-#![feature(int_roundings)]
-#![feature(pointer_byte_offsets)]
 
 #![allow(unused_variables)]
 
@@ -13,12 +11,15 @@ mod sbi_print;
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
 use crate::dtb::FdtHeader;
-use crate::sbi_print::{sbi_println_number_base10, sbi_println_str};
+use crate::sbi_print::sbi_println_str;
 
 const OS_STACK_SIZE: usize = 8192;
 
+#[repr(C, align(16))]
+struct Stack([u8; OS_STACK_SIZE]);
+
 #[no_mangle]
-pub static STACK0: [u8; OS_STACK_SIZE] = [0; OS_STACK_SIZE];
+static STACK0: Stack = Stack([0; OS_STACK_SIZE]);
 
 extern "C" {
     fn kernelvec();
@@ -32,7 +33,9 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     unsafe { riscv::register::stvec::write(kernelvec as usize, TrapMode::Vectored); }
 
     // DTB THING
-    unsafe { FdtHeader::init_fdt_header(dtb); }
+    unsafe {
+        FdtHeader::init_fdt_header(dtb);
+    }
 
     sbi_println_str("---------- Kernel End ----------");
     loop {}

@@ -1,9 +1,12 @@
 .section .text.entry
+.equ STACK_SIZE, 8192 # Must be the same value as in main.rs
 .global _entry
 _entry:
-	la sp, STACK0
+	la sp, STACK0 # Must be the same name as in main.rs
+	li t3, STACK_SIZE # The stack is upside down
+	add sp, sp, t0
 
-	# jump to start() in start.c
+	# jump to start() in start.rs
 	call start
 
 spin:
