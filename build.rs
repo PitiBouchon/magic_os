@@ -20,8 +20,8 @@ fn main() -> Result<(), ()> {
 
     // Compile OpenSBI
     if !Command::new("make")
-        .current_dir("/home/pierre/Documents/magic_os/opensbi/")
-        .env("CROSS_COMPILE", "/opt/riscv/bin/riscv64-unknown-elf-")
+        .current_dir("opensbi")
+        .env("CROSS_COMPILE", "riscv64-unknown-elf-")
         .arg("PLATFORM=generic")
         .arg("FW_JUMP=y")
         .arg("FW_JUMP_ADDR=0x80200000") // Must be the same as in linker.ld
