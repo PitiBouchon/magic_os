@@ -1,6 +1,9 @@
-[build]
-target = "riscv64imac-unknown-none-elf"
+[unstable]
+build-std-features = ["compiler-builtins-mem"]
+build-std = ["core", "compiler_builtins"]
 
-[target.riscv64imac-unknown-none-elf]
-rustflags =["-C", "link-arg=-Tsrc/linker/linker.ld"]
+[build]
+target = "riscv64i-custom_target.json"
+
+[target.riscv64i-custom_target]
 runner = "cargo make qemu"

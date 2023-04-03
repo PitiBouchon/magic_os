@@ -14,6 +14,7 @@ fn main() -> Result<(), ()> {
         .debug(true)
         .file("src/asm/entry.S")
         .file("src/asm/kernelvec.S")
+        .target("riscv64i") // See the build target
         .compiler("/opt/riscv/bin/riscv64-unknown-elf-gcc")
         .compile("asm");
 
