@@ -6,13 +6,13 @@
 
 mod start;
 mod trap;
-mod dtb;
 mod sbi_print;
+mod dtb;
 
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
-use crate::dtb::FdtHeader;
-use crate::sbi_print::sbi_println_str;
+use sbi_print::sbi_println_str;
+use dtb::FdtHeader;
 
 const OS_STACK_SIZE: usize = 65536;
 
@@ -34,9 +34,8 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     unsafe { riscv::register::stvec::write(kernelvec as usize, TrapMode::Vectored); }
 
     // DTB THING
-    unsafe {
-        FdtHeader::init_fdt_header(dtb);
-    }
+    sbi_println_str("Init Fdt Header");
+    unsafe { FdtHeader::init_dtb(dtb); }
 
     sbi_println_str("---------- Kernel End ----------");
     loop {}
@@ -47,3 +46,15 @@ fn panic(info: &PanicInfo) -> ! {
     sbi_println_str("[PANIC]");
     loop {}
 }
+
+// mod some_mod {
+//     use crate::sbi_print::sbi_println_str;
+//
+//     pub struct A;
+//
+//     impl A {
+//         pub fn check_print() {
+//             sbi_println_str("Hi here");
+//         }
+//     }
+// }
