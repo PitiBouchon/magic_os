@@ -1,8 +1,8 @@
 #[allow(dead_code)]
 pub fn sbi_print_str(s: &str) {
-    for c in s.chars() {
-        if let Ok(c_u8) = u8::try_from(c) {
-            sbi::legacy::console_putchar(c_u8);
+    for c in s.bytes() {
+        if c.is_ascii() {
+            sbi::legacy::console_putchar(c);
         }
     }
 }
