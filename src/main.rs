@@ -33,7 +33,7 @@ fn main(hart_id: usize, dtb: usize) -> ! {
 
     sbi_println_str("> Setup kernel trap");
     unsafe {
-        riscv::register::stvec::write(kernelvec as usize, TrapMode::Vectored);
+        riscv::register::stvec::write(kernelvec as usize, TrapMode::Direct);
     }
 
     // DTB THING
