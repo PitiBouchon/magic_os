@@ -24,7 +24,7 @@
   "no-default-libraries": true,
   "position-independent-executables": false,
   "pre-link-args": {
-    "ld.lld": ["--script=/home/pierre/Documents/magic_os/src/linker/linker.ld"]
+    "ld.lld": ["--script=src/linker/linker.ld"]
   },
   "supported-sanitizers": [
     "kernel-address"
