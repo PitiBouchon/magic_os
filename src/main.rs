@@ -3,12 +3,14 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-mod dtb;
+extern crate alloc;
+
+mod allocator;
 mod sbi_print;
 mod start;
 mod trap;
 
-use crate::dtb::init_dtb;
+use alloc::string::String;
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
 
@@ -37,9 +39,10 @@ fn main(hart_id: usize, dtb: usize) -> ! {
 
     // DTB THING
     println!("Init Fdt Header");
-    unsafe {
-        init_dtb(dtb);
-    }
+    let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
+
+
+    allocator::init_heap(&fdt).unwrap();
 
     println!("---------- Kernel End ----------");
     loop {}
