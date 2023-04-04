@@ -3,7 +3,7 @@
 .global _entry
 _entry:
 	la sp, STACK0 # Must be the same name as in main.rs
-	li t3, STACK_SIZE # The stack is upside down
+	li t0, STACK_SIZE # The stack is upside down
 	add sp, sp, t0
 
 	# jump to start() in start.rs
