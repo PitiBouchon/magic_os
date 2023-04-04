@@ -16,7 +16,6 @@ use sbi_print::sbi_println_str;
 const OS_STACK_SIZE: usize = 65536;
 
 core::arch::global_asm!(include_str!("asm/entry.S"));
-core::arch::global_asm!(include_str!("asm/kernelvec.S"));
 
 #[repr(C, align(16))]
 struct Stack([u8; OS_STACK_SIZE]);
