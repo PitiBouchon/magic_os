@@ -12,7 +12,7 @@ mod dtb;
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
 use sbi_print::sbi_println_str;
-use dtb::FdtHeader;
+use crate::dtb::init_dtb;
 
 const OS_STACK_SIZE: usize = 65536;
 
@@ -35,7 +35,7 @@ fn main(hart_id: usize, dtb: usize) -> ! {
 
     // DTB THING
     sbi_println_str("Init Fdt Header");
-    unsafe { FdtHeader::init_dtb(dtb); }
+    unsafe { init_dtb(dtb); }
 
     sbi_println_str("---------- Kernel End ----------");
     loop {}
