@@ -27,12 +27,12 @@ To run the OS with QEMU just do `cargo make qemu`
 Run in a terminal `cargo make qemu-gdb`
 And in another terminal (in this directory) `riscv64-unknown-elf-gdb`
 
-## Issues
+## Done
 
-Still some issues
+- [x] Parse the DTB (using a library)
+- [x] Use the `linked-list-crate` as the allocator
 
 ## Todo
 
-- [ ] Parse the DTB
-- [ ] Create the allocator
 - [ ] Create the page tables
+- [ ] Create my own allocator
