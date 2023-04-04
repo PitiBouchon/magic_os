@@ -11,9 +11,6 @@ panic = "abort"
 [profile.release]
 panic = "abort"
 
-[build-dependencies]
-cc = "1.0.79"
-
 [dependencies]
 riscv = "0.10.1"
 sbi = "0.2.0"

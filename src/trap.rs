@@ -1,6 +1,6 @@
+use crate::sbi_print::sbi_println_str;
 use riscv::register::scause::Scause;
 use riscv::register::sstatus::Sstatus;
-use crate::sbi_print::sbi_println_str;
 
 #[no_mangle]
 fn kernel_trap() {

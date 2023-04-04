@@ -1,6 +1,3 @@
-use std::process::Command;
-use cc::Build;
-
 fn main() {
     // Rebuild if the linked script has changed
     println!("cargo:rerun-if-changed=src/linker/linker.ld");
