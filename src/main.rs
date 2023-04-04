@@ -11,7 +11,6 @@ mod trap;
 use crate::dtb::init_dtb;
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
-use sbi_print::sbi_println_str;
 
 const OS_STACK_SIZE: usize = 65536;
 
@@ -29,25 +28,25 @@ extern "C" {
 
 #[no_mangle]
 fn main(hart_id: usize, dtb: usize) -> ! {
-    sbi_println_str("---------- Kernel Start ----------");
+    println!("---------- Kernel Start ----------");
 
-    sbi_println_str("> Setup kernel trap");
+    println!("> Setup kernel trap");
     unsafe {
         riscv::register::stvec::write(kernelvec as usize, TrapMode::Direct);
     }
 
     // DTB THING
-    sbi_println_str("Init Fdt Header");
+    println!("Init Fdt Header");
     unsafe {
         init_dtb(dtb);
     }
 
-    sbi_println_str("---------- Kernel End ----------");
+    println!("---------- Kernel End ----------");
     loop {}
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    sbi_println_str("[PANIC]");
+    println!("[PANIC]");
     loop {}
 }

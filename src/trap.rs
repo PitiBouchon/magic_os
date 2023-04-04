@@ -1,4 +1,4 @@
-use crate::sbi_print::sbi_println_str;
+use crate::println;
 use riscv::register::scause::Scause;
 use riscv::register::sstatus::Sstatus;
 
@@ -10,6 +10,6 @@ fn kernel_trap() {
     let _sstatus: Sstatus = riscv::register::sstatus::read();
     let _scause: Scause = riscv::register::scause::read();
     let _spp = _sstatus.spp();
-    sbi_println_str("Kernel Trap");
+    println!("Kernel Trap");
     loop {}
 }
