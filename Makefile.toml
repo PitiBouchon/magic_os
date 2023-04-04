@@ -4,7 +4,6 @@ MEMORY = "512M"
 QEMU = "qemu-system-riscv64"
 QEMU_OPTS = """
     -machine virt
-    -bios opensbi/build/platform/generic/firmware/fw_jump.elf
     -kernel target/riscv64imac-unknown-none-elf/debug/magic_os
     -smp ${CPUS}
     -m ${MEMORY}
@@ -27,8 +26,3 @@ dependencies = ["build"]
 [tasks.clean]
 command = "cargo"
 args = ["clean"]
-dependencies = ["clean-sbi"]
-
-[tasks.clean-sbi]
-command = "make"
-args = ["-C", "opensbi", "distclean"]

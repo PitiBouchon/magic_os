@@ -19,13 +19,11 @@ SECTIONS
     }
 
     .data : {
-        _start_data = .;
         . = ALIGN(16);
         PROVIDE( __global_pointer$ = . ); /* Should be placed at the middle of .sdata see : https://gnu-mcu-eclipse.github.io/arch/riscv/programmer/ */
         *(.sdata .sdata.*) /* do not need to distinguish this from .data */
         . = ALIGN(16);
         *(.data .data.*)
-        _end_data = .;
     }
 
     .bss : {

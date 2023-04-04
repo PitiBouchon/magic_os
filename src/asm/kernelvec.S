@@ -4,6 +4,7 @@
 #
 # push all registers, call kerneltrap(), restore, return.
 #
+.pushsection .text
 .global kernel_trap
 .global kernelvec
 .option norelax
@@ -85,3 +86,4 @@ kernelvec:
 
 	// return to whatever we were doing in the kernel.
 	sret
+.popsection

@@ -8,6 +8,7 @@ target = "riscv64imac-unknown-none-elf"
 
 [target.riscv64imac-unknown-none-elf]
 rustflags =["-C", "link-arg=-Tsrc/linker/linker.ld"]
+runner = "cargo make qemu"
 
 [target.riscv64i-custom_target]
 runner = "cargo make qemu"

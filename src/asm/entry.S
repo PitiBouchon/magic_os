@@ -1,4 +1,4 @@
-.section .text.entry
+.pushsection .text.entry
 .equ STACK_SIZE, 65536 # Must be the same value as in main.rs
 .global _entry
 _entry:
@@ -11,3 +11,4 @@ _entry:
 
 spin:
 	j spin
+.popsection
