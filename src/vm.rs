@@ -71,10 +71,16 @@ impl PageTable {
         Self(Box::new([EMPTY_PAGE; ENTRY_COUNT]))
     }
 
+    // Map a page when paging is still not enable
+    // TODO : We could check if KERNEL_BASE == None to see if paging has been enabled maybe ?
     fn map_page_nosatp(&mut self, va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8) {
         let mut va_current = va.page_round_down();
         let va_end = VirtualAddr(va_current.0 + size - 1).page_round_down();
-        println!("va_current: {:?} | va_end: {:?}", va_current.0, va_current.0 + size);
+        println!(
+            "va_current: {:?} | va_end: {:?}",
+            va_current.0,
+            va_current.0 + size
+        );
         loop {
             let page_table_entry = self.walk_alloc(&va_current, perm);
             page_table_entry.set_addr(pa, perm | PTE_VALID);
@@ -99,7 +105,9 @@ impl PageTable {
                 let page_table_addr = page_table.as_mut_ptr() as usize;
                 entry.set_addr(PhysicalAddr(page_table_addr), perm | PTE_VALID);
             } else {
-                page_table = unsafe { &mut *(entry.addr() as *mut PageTable) }.0.deref_mut();
+                page_table = unsafe { &mut *(entry.addr() as *mut PageTable) }
+                    .0
+                    .deref_mut();
             }
             println!("Follow page table");
             entry = &mut page_table[page_numbers[i]];

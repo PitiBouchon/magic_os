@@ -17,8 +17,6 @@ use riscv::register::stvec::TrapMode;
 
 const OS_STACK_SIZE: usize = 65536;
 
-core::arch::global_asm!(include_str!("asm/entry.S"));
-
 #[repr(C, align(16))]
 struct Stack([u8; OS_STACK_SIZE]);
 
@@ -41,7 +39,6 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     // DTB THING
     println!("Init Fdt Header");
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
-
 
     let (start_heap, heap_size) = allocator::init_heap(&fdt).unwrap();
 

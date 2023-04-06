@@ -1,3 +1,5 @@
+core::arch::global_asm!(include_str!("asm/entry.S"));
+
 extern "C" {
     static mut _start_bss: u8;
     static mut _end_bss: u8;
@@ -8,6 +10,8 @@ pub unsafe extern "C" fn start(hart_id: usize, dtb: usize) -> ! {
     // Enable interrupts to supervisor level (external, timer, software)
     // riscv::register::sie::set_sext(); // SEIE
     // riscv::register::sie::set_stimer(); // STIE
+    // sbi::timer::set_timer(u64::MAX).unwrap();
+    // riscv::register::sie::set_stimer();
     // riscv::register::sie::set_ssoft(); // SSIE
 
     // Zeroing the .BSS section
