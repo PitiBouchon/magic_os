@@ -9,6 +9,7 @@ mod allocator;
 mod sbi_print;
 mod start;
 mod trap;
+mod vm;
 
 use alloc::string::String;
 use core::panic::PanicInfo;
@@ -42,7 +43,10 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
 
 
-    allocator::init_heap(&fdt).unwrap();
+    let (start_heap, heap_size) = allocator::init_heap(&fdt).unwrap();
+
+    println!("Init paging");
+    vm::init_paging(start_heap, heap_size);
 
     println!("---------- Kernel End ----------");
     loop {}
@@ -50,6 +54,6 @@ fn main(hart_id: usize, dtb: usize) -> ! {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("[PANIC]");
+    println!("[PANIC]: {:?}", info);
     loop {}
 }
