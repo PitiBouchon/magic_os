@@ -1,3 +1,4 @@
+#![feature(slice_as_chunks)]
 #![no_std]
 #![no_main]
 #![allow(unused_variables)]
@@ -6,6 +7,7 @@
 extern crate alloc;
 
 mod allocator;
+mod physical_memory_manager;
 mod sbi_print;
 mod start;
 mod trap;
@@ -40,10 +42,12 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     println!("Init Fdt Header");
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
 
-    let (start_heap, heap_size) = allocator::init_heap(&fdt).unwrap();
+    physical_memory_manager::init_memory(&fdt);
 
-    println!("Init paging");
-    vm::init_paging(start_heap, heap_size);
+    // let (start_heap, heap_size) = allocator::init_heap(&fdt).unwrap();
+    //
+    // println!("Init paging");
+    // vm::init_paging(start_heap, heap_size);
 
     println!("---------- Kernel End ----------");
     loop {}

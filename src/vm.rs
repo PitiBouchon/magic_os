@@ -5,7 +5,8 @@
 
 use crate::println;
 use alloc::boxed::Box;
-use core::ops::DerefMut;
+use alloc::format;
+use core::ops::{Deref, DerefMut};
 use riscv::register::satp::Mode;
 
 extern "C" {
@@ -53,8 +54,8 @@ impl PageTableEntry {
         (self.0 & 0b1111_1111) as u8
     }
 
-    fn addr(&self) -> usize {
-        ((self.0 >> 10) << 12) & 0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111
+    fn addr(&self) -> PhysicalAddr {
+        PhysicalAddr((self.0 >> 10) << 12) // & 0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111
     }
 
     fn set_addr(&mut self, phys_addr: PhysicalAddr, perm: u8) {
@@ -79,9 +80,10 @@ impl PageTable {
         println!(
             "va_current: {:?} | va_end: {:?}",
             va_current.0,
-            va_current.0 + size
+            va_end.0 + size
         );
         loop {
+            println!("va_current: {}", va_current.0);
             let page_table_entry = self.walk_alloc(&va_current, perm);
             page_table_entry.set_addr(pa, perm | PTE_VALID);
             if va_current.0 == va_end.0 {
@@ -94,22 +96,24 @@ impl PageTable {
 
     fn walk_alloc(&mut self, va: &VirtualAddr, perm: u8) -> &mut PageTableEntry {
         let page_numbers = va.virtual_page_numbers();
+        println!("Page numbers: {:?}", page_numbers);
         let mut page_table = self.0.deref_mut();
-        let mut entry = &mut page_table[page_numbers[0]];
-        for i in 0..2 {
-            println!("Level {}", i);
+        let mut entry = &mut page_table[page_numbers[2]];
+        for i in (0..2).rev() {
+            println!("Level {}, {}", i, entry.0);
+            let a = Box::new(5).deref();
             if entry.permission() & PTE_VALID == 0 {
-                println!("Setup new page");
                 // This entry is not valid
                 page_table = Box::leak(PageTable::new_empty().0);
                 let page_table_addr = page_table.as_mut_ptr() as usize;
                 entry.set_addr(PhysicalAddr(page_table_addr), perm | PTE_VALID);
+                println!("Setup new page: {} | {}", page_table_addr, entry.0);
             } else {
-                page_table = unsafe { &mut *(entry.addr() as *mut PageTable) }
+                println!("Follow page table: {} | {}", entry.addr().0, entry.0);
+                page_table = unsafe { &mut *(entry.addr().0 as *mut PageTable) }
                     .0
                     .deref_mut();
             }
-            println!("Follow page table");
             entry = &mut page_table[page_numbers[i]];
         }
         entry
