@@ -3,11 +3,11 @@ CPUS = 2
 MEMORY = "512M"
 QEMU = "qemu-system-riscv64"
 QEMU_OPTS = """
-    -machine virt
-    -kernel target/riscv64imac-unknown-none-elf/debug/magic_os
-    -smp ${CPUS}
-    -m ${MEMORY}
-    -nographic
+-machine virt \
+-kernel target/riscv64imac-unknown-none-elf/debug/magic_os \
+-smp ${CPUS} \
+-m ${MEMORY} \
+-nographic
 """
 QEMU_GDB_OPTS = "-S -gdb tcp::26000" # The port 26000 must be the same as in the .gdbinit
 
@@ -16,7 +16,15 @@ command = "cargo"
 args = ["build"]
 
 [tasks.qemu]
+linux_alias = "linux_qemu"
+windows_alias = "windows_qemu"
+
+[tasks.linux_qemu]
 script = "${QEMU} ${QEMU_OPTS}"
+dependencies = ["build"]
+
+[tasks.windows_qemu]
+script = "%QEMU% %QEMU_OPTS%"
 dependencies = ["build"]
 
 [tasks.qemu-gdb]

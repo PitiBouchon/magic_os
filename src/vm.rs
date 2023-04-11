@@ -6,8 +6,11 @@
 use crate::println;
 use alloc::boxed::Box;
 use alloc::format;
+use core::alloc::{AllocError, Layout};
 use core::ops::{Deref, DerefMut};
+use core::ptr::NonNull;
 use riscv::register::satp::Mode;
+use spin::Mutex;
 
 extern "C" {
     static _kernel_end: u8;
@@ -160,3 +163,33 @@ pub fn init_paging(start_heap: usize, heap_size: usize) {
 
     println!("Setup Page Table variable finished");
 }
+
+// struct PageAllocator(Mutex<Option<PageNode>>);
+//
+// struct PageNode {
+//     next: Option<usize>,
+// }
+//
+// unsafe impl alloc::alloc::Allocator for PageAllocator {
+//     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+//         assert_eq!(layout.size(), PAGE_SIZE, "Layout size is not PAGE_SIZE (allocate)");
+//         let mut alloc = self.0.lock();
+//         let first_page = alloc.as_mut().ok_or(AllocError)?;
+//         let a: NonNull<[u8]> = NonNull::slice_from_raw_parts(
+//             NonNull::new(first_page as *mut PageNode as *mut u8).ok_or(AllocError)?,
+//             PAGE_SIZE
+//         );
+//         let b = first_page.next.unwrap() as *const PageNode;
+//
+//         *alloc.deref_mut() = first_page.next.map(|next_addr| unsafe { *b });
+//         Ok(a)
+//     }
+//
+//     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
+//         assert_eq!(layout.size(), PAGE_SIZE, "Layout size is not PAGE_SIZE (deallocate)");
+//         let mut alloc = self.0.lock();
+//         let first_page = ptr.as_ptr() as *mut PageNode;
+//         (*first_page).next = alloc.as_ref().map(|page_node| (page_node as *const PageNode) as usize);
+//         *alloc.deref_mut() = first_page;
+//     }
+// }

@@ -1,4 +1,7 @@
 #![feature(slice_as_chunks)]
+#![feature(allocator_api)]
+#![feature(int_roundings)]
+#![feature(nonnull_slice_from_raw_parts)]
 #![no_std]
 #![no_main]
 #![allow(unused_variables)]
@@ -42,7 +45,8 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     println!("Init Fdt Header");
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
 
-    physical_memory_manager::init_memory(&fdt);
+    let free_memory_region = physical_memory_manager::get_free_memory(&fdt);
+    vm::init_paging(free_memory_region.address as usize, free_memory_region.size as usize);
 
     // let (start_heap, heap_size) = allocator::init_heap(&fdt).unwrap();
     //

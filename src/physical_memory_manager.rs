@@ -1,22 +1,47 @@
 use crate::{print, println};
+use fdt::node::MemoryReservation;
 use fdt::standard_nodes::MemoryRegion;
 use fdt::Fdt;
-use fdt::node::MemoryReservation;
 
-pub fn init_memory(fdt: &Fdt) {
-    let reserved_memory = fdt
+extern "C" {
+    static _kernel_end: u8;
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct MyMemoryRegion {
+    pub address: u64,
+    pub size: u64,
+}
+
+impl TryFrom<MemoryRegion> for MyMemoryRegion {
+    type Error = ();
+
+    fn try_from(value: MemoryRegion) -> Result<Self, Self::Error> {
+        Ok(Self {
+            address: value.starting_address as u64,
+            size: value.size.ok_or(())? as u64,
+        })
+    }
+}
+
+impl From<MemoryReservation> for MyMemoryRegion {
+    fn from(value: MemoryReservation) -> Self {
+        Self {
+            address: value.address() as u64,
+            size: value.size() as u64,
+        }
+    }
+}
+
+fn reserved_memory<'a>(fdt: &'a Fdt) -> impl IntoIterator<Item = MyMemoryRegion> + 'a {
+    fdt
         .all_nodes()
         .find(|node| node.name == "reserved-memory")
         .map(|reserved_memory_node| {
             reserved_memory_node
                 .children()
-                // Could use .contains instead
-                // .find(|child_node| {
-                //     child_node.name.len() > "mmode_resv".len()
-                //         && &child_node.name[.."mmode_resv".len()] == "mmode_resv"
-                // })
-                .map(|mmode_rescv| {
-                    let reg_prop = mmode_rescv
+                .map(move |reserved_memory| {
+                    let reg_prop = reserved_memory
                         .properties()
                         .find(|prop| prop.name == "reg")
                         .unwrap();
@@ -37,28 +62,38 @@ pub fn init_memory(fdt: &Fdt) {
 
                     assert!(reminder.is_empty());
 
-                    let addr =
+                    let address =
                         unsafe { core::mem::transmute::<[u8; 8], u64>(*addr_values) }.to_be();
                     let size =
                         unsafe { core::mem::transmute::<[u8; 8], u64>(*size_values) }.to_be();
 
-                    println!("Addr = {} | Size = {}", addr, size);
+                    println!("Addr = {} | Size = {}", address, size);
 
-                    let a = MemoryRegion { starting_address: (), size: None };
-                    let b: MemoryReservation = a.into();
-
-                    // MemoryReservation {
-                    //     address: (),
-                    //     size: (),
-                    // }
+                    MyMemoryRegion { address, size }
                 })
-        }).unwrap();
+        })
+        .unwrap()
+        .chain(fdt
+            .memory_reservations()
+            .map(|memory_reservation| memory_reservation.into())
+        )
+}
 
-    // if let Some(reserved_memory) = open_sbi_memory_region_reserved {
-    //     println!("Addr: {:x} | Size = {:?}", reserved_memory.starting_address as usize, reserved_memory.size);
-    // }
+pub fn get_free_memory(fdt: &Fdt) -> MyMemoryRegion {
+    let kernel_end_addr = unsafe { &_kernel_end as *const u8 as u64 };
 
-    for reserve_node in fdt.memory_reservations().chain(memory_region_reserved) {
-        println!("A");
+    for memory_region in fdt.memory().regions() {
+        if let Some(memory_size) = memory_region.size {
+            let starting_address = (memory_region.starting_address as u64).max(kernel_end_addr);
+            let end_address = ((memory_region.starting_address as usize) + memory_size) as u64;
+            // Assert the reserved memory don't overlap with this memory (otherwise we juste panic for now)
+            for reserved_region in reserved_memory(fdt) {
+                assert!(reserved_region.address > end_address || reserved_region.address + reserved_region.size < starting_address);
+            }
+            // Return the first memory found but it should be more
+            return MyMemoryRegion { address: starting_address, size:  memory_size as u64};
+        }
     }
+
+    panic!("No free memory found")
 }
