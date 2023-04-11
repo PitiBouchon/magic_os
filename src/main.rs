@@ -3,6 +3,7 @@
 #![feature(int_roundings)]
 #![feature(nonnull_slice_from_raw_parts)]
 #![feature(slice_ptr_get)]
+#![feature(generic_const_exprs)]
 // #![feature(new_uninit)]
 #![no_std]
 #![no_main]
@@ -50,7 +51,7 @@ fn main(hart_id: usize, dtb: usize) -> ! {
 
     let free_memory_region = physical_memory_manager::get_free_memory(&fdt);
     unsafe { kalloc::init_page_allocator(free_memory_region); }
-    // vm::init_paging(&fdt);
+    vm::init_paging(&fdt);
 
     println!("---------- Kernel End ----------");
     loop {}

@@ -42,7 +42,7 @@ impl PageAllocator {
             (*old_node).next = None;
         }
         // TODO : Find the error
-        for current_addr in (start_memory_addr..).step_by(PAGE_SIZE).take_while(|&addr| addr + 1000 * PAGE_SIZE < end_memory_addr) {
+        for current_addr in (start_memory_addr..).step_by(PAGE_SIZE).take_while(|&addr| addr + PAGE_SIZE < end_memory_addr) {
             let mut next_node = current_addr as *mut Node;
             unsafe {
                 (*next_node).next = None;

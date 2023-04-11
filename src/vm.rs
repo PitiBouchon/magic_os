@@ -1,6 +1,7 @@
 use fdt::Fdt;
 use riscv::register::satp::Mode;
 use crate::kalloc::{PAGE_ALLOCATOR, page_round_down, page_round_up, PAGE_SIZE};
+use crate::physical_memory_manager::parse_reg;
 use crate::println;
 
 // 4096 bytes (PAGE_SIZE) / 8 bytes (64 bits) per entry = 512 entries
@@ -68,11 +69,11 @@ impl PageTable {
     fn map_page_nosatp(&mut self, va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8) {
         let mut va_current = va.page_round_down();
         let va_end = VirtualAddr(va_current.0 + size - 1).page_round_down();
-        println!(
-            "va_current: {:?} | va_end: {:?}",
-            va_current.0,
-            va_end.0 + size
-        );
+        // println!(
+        //     "va_current: {:?} | va_end: {:?}",
+        //     va_current.0,
+        //     va_end.0 + size
+        // );
         loop {
             // println!("va_current: {}", va_current.0);
             let page_table_entry = self.walk_alloc(&va_current, perm);
@@ -111,41 +112,40 @@ impl PageTable {
 
 static mut KERNEL_PAGE: Option<&mut PageTable> = None;
 
-pub fn init_paging(_fdt: &Fdt) {
+pub fn init_paging(fdt: &Fdt) {
     let kernel_page_table: &mut PageTable = unsafe { &mut *(PAGE_ALLOCATOR.kalloc().unwrap() as *mut PageTable) };
 
     println!("Setup Page Table KERNEL");
 
-    // println!("Setup UART0 Paging");
-    //
     // Got these addresses from xv6-riscv
-    // const UART0: usize = 0x10000000;
-    // kernel_page_table.map_page_nosatp(
-    //     VirtualAddr(UART0),
-    //     PhysicalAddr(UART0),
-    //     PAGE_SIZE,
-    //     PTE_READ | PTE_WRITE,
-    // );
-    //
-    // println!("Setup VIRTIO0 Paging");
-    //
-    // const VIRTIO0: usize = 0x10001000;
-    // kernel_page_table.map_page_nosatp(
-    //     VirtualAddr(VIRTIO0),
-    //     PhysicalAddr(VIRTIO0),
-    //     PAGE_SIZE,
-    //     PTE_READ | PTE_WRITE,
-    // );
-    //
-    // println!("Setup PLIC Paging");
-    //
-    // const PLIC: usize = 0x0c000000;
-    // kernel_page_table.map_page_nosatp(
-    //     VirtualAddr(PLIC),
-    //     PhysicalAddr(PLIC),
-    //     0x400000,
-    //     PTE_READ | PTE_WRITE,
-    // );
+
+    const UART0: usize = 0x10000000;
+    kernel_page_table.map_page_nosatp(
+        VirtualAddr(UART0),
+        PhysicalAddr(UART0),
+        256,
+        PTE_READ | PTE_WRITE,
+    );
+
+    println!("Setup VIRTIO0 Paging");
+
+    const VIRTIO0: usize = 0x10001000;
+    kernel_page_table.map_page_nosatp(
+        VirtualAddr(VIRTIO0),
+        PhysicalAddr(VIRTIO0),
+        PAGE_SIZE,
+        PTE_READ | PTE_WRITE,
+    );
+
+    println!("Setup PLIC Paging");
+
+    const PLIC: usize = 0x0c000000;
+    kernel_page_table.map_page_nosatp(
+        VirtualAddr(PLIC),
+        PhysicalAddr(PLIC),
+        0x400000,
+        PTE_READ | PTE_WRITE,
+    );
 
     println!("Setup Kernel Code Paging");
 

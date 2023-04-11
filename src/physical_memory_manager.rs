@@ -7,6 +7,20 @@ extern "C" {
     static _kernel_end: u8;
 }
 
+pub fn parse_reg<'a>(values: &'a [u8]) -> (u64, u64) {
+    let ([addr_values, size_values], reminder) =
+        values.as_chunks::<8>() else { panic!("Impossible") };
+
+    assert!(reminder.is_empty());
+
+    let address =
+        unsafe { core::mem::transmute::<[u8; 8], u64>(*addr_values) }.to_be();
+    let size =
+        unsafe { core::mem::transmute::<[u8; 8], u64>(*size_values) }.to_be();
+
+    return (address, size)
+}
+
 #[derive(Debug, Copy, Clone)]
 pub struct MyMemoryRegion {
     pub address: u64,
@@ -57,17 +71,17 @@ fn reserved_memory<'a>(fdt: &'a Fdt) -> impl IntoIterator<Item = MyMemoryRegion>
                     assert_eq!(size_cell, 2, "size_cell should equal 2");
                     assert_eq!(address_cell, 2, "address_cell should equal 2");
 
-                    let ([addr_values, size_values], reminder) =
-                        reg_prop.value.as_chunks::<8>() else { panic!("Impossible") };
+                    let (address, size) = parse_reg(reg_prop.value);
 
-                    assert!(reminder.is_empty());
-
-                    let address =
-                        unsafe { core::mem::transmute::<[u8; 8], u64>(*addr_values) }.to_be();
-                    let size =
-                        unsafe { core::mem::transmute::<[u8; 8], u64>(*size_values) }.to_be();
-
-                    println!("Addr = {} | Size = {}", address, size);
+                    // let ([addr_values, size_values], reminder) =
+                    //     reg_prop.value.as_chunks::<8>() else { panic!("Impossible") };
+                    //
+                    // assert!(reminder.is_empty());
+                    //
+                    // let address =
+                    //     unsafe { core::mem::transmute::<[u8; 8], u64>(*addr_values) }.to_be();
+                    // let size =
+                    //     unsafe { core::mem::transmute::<[u8; 8], u64>(*size_values) }.to_be();
 
                     MyMemoryRegion { address, size }
                 })
@@ -83,15 +97,21 @@ pub fn get_free_memory(fdt: &Fdt) -> MyMemoryRegion {
     let kernel_end_addr = unsafe { &_kernel_end as *const u8 as u64 };
 
     for memory_region in fdt.memory().regions() {
-        if let Some(memory_size) = memory_region.size {
-            let starting_address = (memory_region.starting_address as u64).max(kernel_end_addr);
+        if let Some(mut memory_size) = memory_region.size {
+            let mut starting_address = memory_region.starting_address as u64;
+            if kernel_end_addr > starting_address {
+                memory_size -= (kernel_end_addr - starting_address) as usize;
+                starting_address = kernel_end_addr;
+            }
             let end_address = ((memory_region.starting_address as usize) + memory_size) as u64;
             // Assert the reserved memory don't overlap with this memory (otherwise we juste panic for now)
             for reserved_region in reserved_memory(fdt) {
                 assert!(reserved_region.address > end_address || reserved_region.address + reserved_region.size < starting_address);
             }
             // Return the first memory found but it should be more
-            return MyMemoryRegion { address: starting_address, size:  memory_size as u64};
+            let res = MyMemoryRegion { address: starting_address, size:  memory_size as u64};
+            println!("Free Memory: {:?}", res);
+            return res;
         }
     }
 
