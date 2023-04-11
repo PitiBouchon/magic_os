@@ -1,24 +1,9 @@
-// vm stands for Virtual Memory
-// We use the Sv39 design (which limit the memory to 512Gb)
-// VPN : Virtual Page Number
-// PPN : Physical Page Number
-
-use crate::println;
-use alloc::boxed::Box;
-use alloc::format;
-use core::alloc::{AllocError, Layout};
-use core::ops::{Deref, DerefMut};
-use core::ptr::NonNull;
+use fdt::Fdt;
 use riscv::register::satp::Mode;
-use spin::Mutex;
+use crate::kalloc::{PAGE_ALLOCATOR, page_round_down, page_round_up, PAGE_SIZE};
+use crate::println;
 
-extern "C" {
-    static _kernel_end: u8;
-}
-
-pub const PAGE_SIZE: usize = 4096;
-
-// 4096 bytes / 8 bytes per entry = 512 entries
+// 4096 bytes (PAGE_SIZE) / 8 bytes (64 bits) per entry = 512 entries
 const ENTRY_COUNT: usize = 512;
 
 const PTE_VALID: u8 = 0b0000_0001;
@@ -29,6 +14,13 @@ const PTE_USER: u8 = 0b0001_0000;
 const PTE_GLOBAL: u8 = 0b0010_0000;
 const PTE_ACCESS: u8 = 0b0100_0000;
 const PTE_DIRTY: u8 = 0b1000_0000;
+
+extern "C" {
+    static _kernel_end: u8;
+}
+
+#[derive(Debug, Copy, Clone)]
+struct PhysicalAddr(usize);
 
 #[derive(Debug, Copy, Clone)]
 struct VirtualAddr(usize);
@@ -43,13 +35,15 @@ impl VirtualAddr {
     }
 
     fn page_round_down(self) -> Self {
-        VirtualAddr(self.0 & !(PAGE_SIZE - 1))
+        VirtualAddr(page_round_down(self.0))
+    }
+
+    fn page_round_up(self) -> Self {
+        VirtualAddr(page_round_up(self.0))
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-struct PhysicalAddr(usize);
-
+#[derive(Copy, Clone)]
 struct PageTableEntry(usize);
 
 impl PageTableEntry {
@@ -66,15 +60,9 @@ impl PageTableEntry {
     }
 }
 
-struct PageTable(Box<[PageTableEntry; ENTRY_COUNT]>);
-
-const EMPTY_PAGE: PageTableEntry = PageTableEntry(0);
+struct PageTable([PageTableEntry; ENTRY_COUNT]);
 
 impl PageTable {
-    fn new_empty() -> Self {
-        Self(Box::new([EMPTY_PAGE; ENTRY_COUNT]))
-    }
-
     // Map a page when paging is still not enable
     // TODO : We could check if KERNEL_BASE == None to see if paging has been enabled maybe ?
     fn map_page_nosatp(&mut self, va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8) {
@@ -86,7 +74,7 @@ impl PageTable {
             va_end.0 + size
         );
         loop {
-            println!("va_current: {}", va_current.0);
+            // println!("va_current: {}", va_current.0);
             let page_table_entry = self.walk_alloc(&va_current, perm);
             page_table_entry.set_addr(pa, perm | PTE_VALID);
             if va_current.0 == va_end.0 {
@@ -98,24 +86,22 @@ impl PageTable {
     }
 
     fn walk_alloc(&mut self, va: &VirtualAddr, perm: u8) -> &mut PageTableEntry {
-        let page_numbers = va.virtual_page_numbers();
-        println!("Page numbers: {:?}", page_numbers);
-        let mut page_table = self.0.deref_mut();
+        let page_numbers = va.virtual_page_numbers(); // TODO : Maybe this should be reversed instead
+        // println!("Page numbers: {:?}", page_numbers);
+        let mut page_table = &mut self.0;
         let mut entry = &mut page_table[page_numbers[2]];
         for i in (0..2).rev() {
-            println!("Level {}, {}", i, entry.0);
-            let a = Box::new(5).deref();
+            // println!("Level {}, {}", i, entry.0);
             if entry.permission() & PTE_VALID == 0 {
                 // This entry is not valid
-                page_table = Box::leak(PageTable::new_empty().0);
+                let addr = PAGE_ALLOCATOR.kalloc().unwrap();
+                page_table = unsafe { &mut *(addr as *mut [PageTableEntry; ENTRY_COUNT]) };
                 let page_table_addr = page_table.as_mut_ptr() as usize;
                 entry.set_addr(PhysicalAddr(page_table_addr), perm | PTE_VALID);
-                println!("Setup new page: {} | {}", page_table_addr, entry.0);
+                // println!("Setup new page: {} | {}", page_table_addr, entry.0);
             } else {
-                println!("Follow page table: {} | {}", entry.addr().0, entry.0);
-                page_table = unsafe { &mut *(entry.addr().0 as *mut PageTable) }
-                    .0
-                    .deref_mut();
+                // println!("Follow page table: {} | {}", entry.addr().0, entry.0);
+                page_table = unsafe { &mut *(entry.addr().0 as *mut [PageTableEntry; ENTRY_COUNT]) };
             }
             entry = &mut page_table[page_numbers[i]];
         }
@@ -123,12 +109,45 @@ impl PageTable {
     }
 }
 
-static mut KERNEL_PAGE: Option<PageTable> = None;
+static mut KERNEL_PAGE: Option<&mut PageTable> = None;
 
-pub fn init_paging(start_heap: usize, heap_size: usize) {
-    let mut kernel_page_table = PageTable::new_empty();
+pub fn init_paging(_fdt: &Fdt) {
+    let kernel_page_table: &mut PageTable = unsafe { &mut *(PAGE_ALLOCATOR.kalloc().unwrap() as *mut PageTable) };
 
     println!("Setup Page Table KERNEL");
+
+    // println!("Setup UART0 Paging");
+    //
+    // Got these addresses from xv6-riscv
+    // const UART0: usize = 0x10000000;
+    // kernel_page_table.map_page_nosatp(
+    //     VirtualAddr(UART0),
+    //     PhysicalAddr(UART0),
+    //     PAGE_SIZE,
+    //     PTE_READ | PTE_WRITE,
+    // );
+    //
+    // println!("Setup VIRTIO0 Paging");
+    //
+    // const VIRTIO0: usize = 0x10001000;
+    // kernel_page_table.map_page_nosatp(
+    //     VirtualAddr(VIRTIO0),
+    //     PhysicalAddr(VIRTIO0),
+    //     PAGE_SIZE,
+    //     PTE_READ | PTE_WRITE,
+    // );
+    //
+    // println!("Setup PLIC Paging");
+    //
+    // const PLIC: usize = 0x0c000000;
+    // kernel_page_table.map_page_nosatp(
+    //     VirtualAddr(PLIC),
+    //     PhysicalAddr(PLIC),
+    //     0x400000,
+    //     PTE_READ | PTE_WRITE,
+    // );
+
+    println!("Setup Kernel Code Paging");
 
     const KERNEL_BASE: usize = 0x80200000; // From the linker
     let kernel_end_addr = unsafe { &_kernel_end as *const u8 as usize };
@@ -140,19 +159,23 @@ pub fn init_paging(start_heap: usize, heap_size: usize) {
         PTE_READ | PTE_EXECUTE,
     );
 
-    println!("Setup Page Table HEAP");
+    println!("Setup Memory Paging");
 
+    let start_memory = PAGE_ALLOCATOR.start_addr();
+    let memory_size = PAGE_ALLOCATOR.end_addr() - start_memory;
+    assert!(memory_size > 0);
+    assert!(start_memory > kernel_end_addr);
     kernel_page_table.map_page_nosatp(
-        VirtualAddr(start_heap),
-        PhysicalAddr(start_heap),
-        heap_size,
+        VirtualAddr(start_memory),
+        PhysicalAddr(start_memory),
+        memory_size,
         PTE_READ | PTE_WRITE,
     );
 
     println!("Setup Page Table finished");
 
+    let kernel_page_table_addr = kernel_page_table as *const PageTable as usize;
     unsafe {
-        let kernel_page_table_addr = &kernel_page_table as *const PageTable as usize;
         KERNEL_PAGE = Some(kernel_page_table);
 
         // Enable paging
@@ -161,35 +184,6 @@ pub fn init_paging(start_heap: usize, heap_size: usize) {
         riscv::asm::sfence_vma_all();
     }
 
-    println!("Setup Page Table variable finished");
-}
+    println!("Setup Kernel Paging Finished");
 
-// struct PageAllocator(Mutex<Option<PageNode>>);
-//
-// struct PageNode {
-//     next: Option<usize>,
-// }
-//
-// unsafe impl alloc::alloc::Allocator for PageAllocator {
-//     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-//         assert_eq!(layout.size(), PAGE_SIZE, "Layout size is not PAGE_SIZE (allocate)");
-//         let mut alloc = self.0.lock();
-//         let first_page = alloc.as_mut().ok_or(AllocError)?;
-//         let a: NonNull<[u8]> = NonNull::slice_from_raw_parts(
-//             NonNull::new(first_page as *mut PageNode as *mut u8).ok_or(AllocError)?,
-//             PAGE_SIZE
-//         );
-//         let b = first_page.next.unwrap() as *const PageNode;
-//
-//         *alloc.deref_mut() = first_page.next.map(|next_addr| unsafe { *b });
-//         Ok(a)
-//     }
-//
-//     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
-//         assert_eq!(layout.size(), PAGE_SIZE, "Layout size is not PAGE_SIZE (deallocate)");
-//         let mut alloc = self.0.lock();
-//         let first_page = ptr.as_ptr() as *mut PageNode;
-//         (*first_page).next = alloc.as_ref().map(|page_node| (page_node as *const PageNode) as usize);
-//         *alloc.deref_mut() = first_page;
-//     }
-// }
+}

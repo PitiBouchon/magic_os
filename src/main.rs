@@ -2,21 +2,24 @@
 #![feature(allocator_api)]
 #![feature(int_roundings)]
 #![feature(nonnull_slice_from_raw_parts)]
+#![feature(slice_ptr_get)]
+// #![feature(new_uninit)]
 #![no_std]
 #![no_main]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-extern crate alloc;
+// extern crate alloc;
 
-mod allocator;
+// mod allocator;
 mod physical_memory_manager;
 mod sbi_print;
 mod start;
 mod trap;
+mod kalloc;
 mod vm;
 
-use alloc::string::String;
+// use alloc::string::String;
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
 
@@ -46,12 +49,8 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
 
     let free_memory_region = physical_memory_manager::get_free_memory(&fdt);
-    vm::init_paging(free_memory_region.address as usize, free_memory_region.size as usize);
-
-    // let (start_heap, heap_size) = allocator::init_heap(&fdt).unwrap();
-    //
-    // println!("Init paging");
-    // vm::init_paging(start_heap, heap_size);
+    unsafe { kalloc::init_page_allocator(free_memory_region); }
+    // vm::init_paging(&fdt);
 
     println!("---------- Kernel End ----------");
     loop {}
