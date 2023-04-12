@@ -1,5 +1,4 @@
 use crate::kalloc::{page_round_down, page_round_up, PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::physical_memory_manager::parse_reg;
 use crate::println;
 use fdt::Fdt;
 use riscv::register::satp::Mode;
@@ -151,6 +150,7 @@ pub fn init_paging(fdt: &Fdt) {
         PTE_READ | PTE_WRITE,
     );
 
+    // Not needed
     // println!("Setup VIRTIO0 Paging");
     //
     // const VIRTIO0: usize = 0x10001000;
@@ -159,7 +159,7 @@ pub fn init_paging(fdt: &Fdt) {
     //     PhysicalAddr(VIRTIO0),
     //     PAGE_SIZE,
     //     PTE_READ | PTE_WRITE,
-    // );256
+    // );
 
     println!("Setup PLIC Paging");
 
