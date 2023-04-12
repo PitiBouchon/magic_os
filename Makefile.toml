@@ -20,7 +20,8 @@ linux_alias = "linux_qemu"
 windows_alias = "windows_qemu"
 
 [tasks.linux_qemu]
-script = "${QEMU} ${QEMU_OPTS}"
+script = """echo "${QEMU} ${QEMU_OPTS}"
+${QEMU} ${QEMU_OPTS}"""
 dependencies = ["build"]
 
 [tasks.windows_qemu]

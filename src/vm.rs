@@ -35,6 +35,10 @@ impl VirtualAddr {
         ]
     }
 
+    fn page_offset(&self) -> usize {
+        self.0 & 0b1111_1111_1111
+    }
+
     fn page_round_down(self) -> Self {
         VirtualAddr(page_round_down(self.0))
     }
@@ -44,7 +48,7 @@ impl VirtualAddr {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 struct PageTableEntry(usize);
 
 impl PageTableEntry {
@@ -53,7 +57,7 @@ impl PageTableEntry {
     }
 
     fn addr(&self) -> PhysicalAddr {
-        PhysicalAddr((self.0 >> 10) << 12) // & 0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111
+        PhysicalAddr((self.0 >> 10) << 12) // & 0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111)
     }
 
     fn set_addr(&mut self, phys_addr: PhysicalAddr, perm: u8) {
@@ -64,6 +68,23 @@ impl PageTableEntry {
 struct PageTable([PageTableEntry; ENTRY_COUNT]);
 
 impl PageTable {
+    fn get_physical_addr(&self, va: VirtualAddr) -> PhysicalAddr {
+        let page_numbers = va.virtual_page_numbers();
+        let mut page_table = &self.0;
+        let mut entry = &page_table[page_numbers[2]];
+        for i in (0..2).rev() {
+            if entry.permission() & PTE_VALID != 0 {
+                page_table = unsafe { &*(entry.addr().0 as *mut [PageTableEntry; ENTRY_COUNT]) };
+            } else {
+                panic!("SHOULD NOT PANIC !");
+            }
+            entry = &page_table[page_numbers[i]];
+        }
+        let mut pa = entry.addr();
+        pa.0 += va.page_offset();
+        pa
+    }
+
     // Map a page when paging is still not enable
     // TODO : We could check if KERNEL_BASE == None to see if paging has been enabled maybe ?
     fn map_page_nosatp(&mut self, va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8) {
@@ -117,33 +138,34 @@ pub fn init_paging(fdt: &Fdt) {
 
     println!("Setup Page Table KERNEL");
 
-    // Got these addresses from xv6-riscv
+    // Got these addresses from the parsing of the dtb from QEMU because it's quicker to test than parsing the dtb
+    println!("Setup UART0 Paging");
 
     const UART0: usize = 0x10000000;
     kernel_page_table.map_page_nosatp(
         VirtualAddr(UART0),
         PhysicalAddr(UART0),
-        256,
+        PAGE_SIZE, // Real Size 256
         PTE_READ | PTE_WRITE,
     );
 
-    println!("Setup VIRTIO0 Paging");
-
-    const VIRTIO0: usize = 0x10001000;
-    kernel_page_table.map_page_nosatp(
-        VirtualAddr(VIRTIO0),
-        PhysicalAddr(VIRTIO0),
-        PAGE_SIZE,
-        PTE_READ | PTE_WRITE,
-    );
+    // println!("Setup VIRTIO0 Paging");
+    //
+    // const VIRTIO0: usize = 0x10001000;
+    // kernel_page_table.map_page_nosatp(
+    //     VirtualAddr(VIRTIO0),
+    //     PhysicalAddr(VIRTIO0),
+    //     PAGE_SIZE,
+    //     PTE_READ | PTE_WRITE,
+    // );256
 
     println!("Setup PLIC Paging");
 
-    const PLIC: usize = 0x0c000000;
+    const PLIC: usize = 0xc000000;
     kernel_page_table.map_page_nosatp(
         VirtualAddr(PLIC),
         PhysicalAddr(PLIC),
-        0x400000,
+        0x600000,
         PTE_READ | PTE_WRITE,
     );
 
@@ -174,13 +196,17 @@ pub fn init_paging(fdt: &Fdt) {
 
     println!("Setup Page Table finished");
 
+    let va = VirtualAddr(0x802044c2); // This should equal the pc (program counter) juste before the satp::set(...)
+    let pa = kernel_page_table.get_physical_addr(va);
+    println!("Test: {:?} == {:?}", va.0, pa.0);
+
     let kernel_page_table_addr = kernel_page_table as *const PageTable as usize;
     unsafe {
         KERNEL_PAGE = Some(kernel_page_table);
 
         // Enable paging
         riscv::asm::sfence_vma_all();
-        riscv::register::satp::set(Mode::Sv39, 0, kernel_page_table_addr);
+        riscv::register::satp::set(Mode::Sv39,  0, kernel_page_table_addr);
         riscv::asm::sfence_vma_all();
     }
 

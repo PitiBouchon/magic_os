@@ -73,6 +73,7 @@ impl StaticPageAllocator {
             alloc.node = (*(first_node_addr as *mut Node)).next;
         }
 
+        unsafe { memset(first_node_addr, PAGE_SIZE, 0); }
         Ok(first_node_addr)
     }
 
@@ -86,6 +87,15 @@ impl StaticPageAllocator {
         unsafe {
             (*new_node).next = alloc.node.map(|node| (node as *mut Node) as usize);
             alloc.node = (*new_node).next;
+        }
+    }
+}
+
+pub unsafe fn memset(addr: usize, size: usize, value: u8) {
+    for addr in addr..(addr + size) {
+        unsafe {
+            let ptr = addr as *mut u8;
+            ptr.write(value);
         }
     }
 }
