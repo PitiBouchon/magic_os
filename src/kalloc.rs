@@ -1,7 +1,7 @@
+use crate::physical_memory_manager::MyMemoryRegion;
 use core::alloc::AllocError;
 use core::ops::DerefMut;
 use spin::Mutex;
-use crate::physical_memory_manager::MyMemoryRegion;
 
 pub struct PhysicalAddress(usize);
 
@@ -16,7 +16,7 @@ pub const fn page_round_up(addr: usize) -> usize {
 }
 
 struct Node {
-    next: Option<usize>
+    next: Option<usize>,
 }
 
 pub unsafe fn init_page_allocator(free_memory_region: MyMemoryRegion) {
@@ -27,7 +27,7 @@ pub unsafe fn init_page_allocator(free_memory_region: MyMemoryRegion) {
 struct PageAllocator {
     start: usize,
     end: usize,
-    node: Option<usize>
+    node: Option<usize>,
 }
 
 pub struct StaticPageAllocator(Mutex<PageAllocator>);
@@ -35,14 +35,18 @@ pub struct StaticPageAllocator(Mutex<PageAllocator>);
 impl PageAllocator {
     fn init(&mut self, free_memory_region: MyMemoryRegion) {
         let start_memory_addr = page_round_up(free_memory_region.address as usize);
-        let end_memory_addr = page_round_down((free_memory_region.address + free_memory_region.size) as usize);
+        let end_memory_addr =
+            page_round_down((free_memory_region.address + free_memory_region.size) as usize);
         self.start = start_memory_addr;
         let mut old_node = start_memory_addr as *mut Node;
         unsafe {
             (*old_node).next = None;
         }
         // TODO : Find the error
-        for current_addr in (start_memory_addr..).step_by(PAGE_SIZE).take_while(|&addr| addr + PAGE_SIZE < end_memory_addr) {
+        for current_addr in (start_memory_addr..)
+            .step_by(PAGE_SIZE)
+            .take_while(|&addr| addr + PAGE_SIZE < end_memory_addr)
+        {
             let mut next_node = current_addr as *mut Node;
             unsafe {
                 (*next_node).next = None;
@@ -55,7 +59,11 @@ impl PageAllocator {
     }
 }
 
-pub static PAGE_ALLOCATOR: StaticPageAllocator = StaticPageAllocator(Mutex::new(PageAllocator { start: 0, end: 0, node: None }));
+pub static PAGE_ALLOCATOR: StaticPageAllocator = StaticPageAllocator(Mutex::new(PageAllocator {
+    start: 0,
+    end: 0,
+    node: None,
+}));
 
 impl StaticPageAllocator {
     pub fn start_addr(&self) -> usize {
@@ -73,7 +81,9 @@ impl StaticPageAllocator {
             alloc.node = (*(first_node_addr as *mut Node)).next;
         }
 
-        unsafe { memset(first_node_addr, PAGE_SIZE, 0); }
+        unsafe {
+            memset(first_node_addr, PAGE_SIZE, 0);
+        }
         Ok(first_node_addr)
     }
 

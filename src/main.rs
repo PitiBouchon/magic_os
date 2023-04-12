@@ -13,11 +13,11 @@
 // extern crate alloc;
 
 // mod allocator;
+mod kalloc;
 mod physical_memory_manager;
 mod sbi_print;
 mod start;
 mod trap;
-mod kalloc;
 mod vm;
 
 // use alloc::string::String;
@@ -50,7 +50,9 @@ fn main(hart_id: usize, dtb: usize) -> ! {
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
 
     let free_memory_region = physical_memory_manager::get_free_memory(&fdt);
-    unsafe { kalloc::init_page_allocator(free_memory_region); }
+    unsafe {
+        kalloc::init_page_allocator(free_memory_region);
+    }
     vm::init_paging(&fdt);
 
     println!("---------- Kernel End ----------");

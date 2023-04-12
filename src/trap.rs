@@ -1,6 +1,6 @@
 use crate::println;
 use riscv::register::scause::{Exception, Interrupt, Scause, Trap};
-use riscv::register::sstatus::{SPP, Sstatus};
+use riscv::register::sstatus::{Sstatus, SPP};
 
 core::arch::global_asm!(include_str!("asm/kernelvec.S"));
 
@@ -15,7 +15,11 @@ fn kernel_trap() {
         SPP::User => println!("Trap from User"),
     }
 
-    println!("Kernel Trap Code : {} | {}", scause.code(), scause.is_interrupt());
+    println!(
+        "Kernel Trap Code : {} | {}",
+        scause.code(),
+        scause.is_interrupt()
+    );
     match scause.cause() {
         Trap::Interrupt(i) => println!("Interrupt: {:?}", i),
         Trap::Exception(e) => println!("Exception: {:?}", e),

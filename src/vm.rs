@@ -1,8 +1,8 @@
-use fdt::Fdt;
-use riscv::register::satp::Mode;
-use crate::kalloc::{PAGE_ALLOCATOR, page_round_down, page_round_up, PAGE_SIZE};
+use crate::kalloc::{page_round_down, page_round_up, PAGE_ALLOCATOR, PAGE_SIZE};
 use crate::physical_memory_manager::parse_reg;
 use crate::println;
+use fdt::Fdt;
+use riscv::register::satp::Mode;
 
 // 4096 bytes (PAGE_SIZE) / 8 bytes (64 bits) per entry = 512 entries
 const ENTRY_COUNT: usize = 512;
@@ -109,7 +109,7 @@ impl PageTable {
 
     fn walk_alloc(&mut self, va: &VirtualAddr, perm: u8) -> &mut PageTableEntry {
         let page_numbers = va.virtual_page_numbers(); // TODO : Maybe this should be reversed instead
-        // println!("Page numbers: {:?}", page_numbers);
+                                                      // println!("Page numbers: {:?}", page_numbers);
         let mut page_table = &mut self.0;
         let mut entry = &mut page_table[page_numbers[2]];
         for i in (0..2).rev() {
@@ -123,7 +123,8 @@ impl PageTable {
                 // println!("Setup new page: {} | {}", page_table_addr, entry.0);
             } else {
                 // println!("Follow page table: {} | {}", entry.addr().0, entry.0);
-                page_table = unsafe { &mut *(entry.addr().0 as *mut [PageTableEntry; ENTRY_COUNT]) };
+                page_table =
+                    unsafe { &mut *(entry.addr().0 as *mut [PageTableEntry; ENTRY_COUNT]) };
             }
             entry = &mut page_table[page_numbers[i]];
         }
@@ -134,7 +135,8 @@ impl PageTable {
 static mut KERNEL_PAGE: Option<&mut PageTable> = None;
 
 pub fn init_paging(fdt: &Fdt) {
-    let kernel_page_table: &mut PageTable = unsafe { &mut *(PAGE_ALLOCATOR.kalloc().unwrap() as *mut PageTable) };
+    let kernel_page_table: &mut PageTable =
+        unsafe { &mut *(PAGE_ALLOCATOR.kalloc().unwrap() as *mut PageTable) };
 
     println!("Setup Page Table KERNEL");
 
@@ -206,10 +208,9 @@ pub fn init_paging(fdt: &Fdt) {
 
         // Enable paging
         riscv::asm::sfence_vma_all();
-        riscv::register::satp::set(Mode::Sv39,  0, kernel_page_table_addr);
+        riscv::register::satp::set(Mode::Sv39, 0, kernel_page_table_addr);
         riscv::asm::sfence_vma_all();
     }
 
     println!("Setup Kernel Paging Finished");
-
 }
