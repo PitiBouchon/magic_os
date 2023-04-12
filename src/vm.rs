@@ -118,7 +118,13 @@ impl PageTable {
                 let addr = PAGE_ALLOCATOR.kalloc().unwrap();
                 page_table = unsafe { &mut *(addr as *mut [PageTableEntry; ENTRY_COUNT]) };
                 let page_table_addr = page_table.as_mut_ptr() as usize;
-                entry.set_addr(PhysicalAddr(page_table_addr), perm | PTE_VALID);
+                if i == 0 {
+                    // A leaf
+                    entry.set_addr(PhysicalAddr(page_table_addr), perm | PTE_VALID);
+                } else {
+                    // Pointer to the next level
+                    entry.set_addr(PhysicalAddr(page_table_addr), PTE_VALID);
+                }
                 // println!("Setup new page: {} | {}", page_table_addr, entry.0);
             } else {
                 // println!("Follow page table: {} | {}", entry.addr().0, entry.0);
