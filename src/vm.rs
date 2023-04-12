@@ -67,21 +67,25 @@ impl PageTableEntry {
 struct PageTable([PageTableEntry; ENTRY_COUNT]);
 
 impl PageTable {
-    fn get_physical_addr(&self, va: VirtualAddr) -> PhysicalAddr {
+    fn get_physical_addr_perm(&self, va: VirtualAddr) -> (PhysicalAddr, u8) {
         let page_numbers = va.virtual_page_numbers();
         let mut page_table = &self.0;
         let mut entry = &page_table[page_numbers[2]];
         for i in (0..2).rev() {
-            if entry.permission() & PTE_VALID != 0 {
-                page_table = unsafe { &*(entry.addr().0 as *mut [PageTableEntry; ENTRY_COUNT]) };
-            } else {
-                panic!("SHOULD NOT PANIC !");
+            if (entry.permission() & PTE_VALID == 0)
+                || ((entry.permission() & PTE_READ == 0) && (entry.permission() & PTE_WRITE != 0))
+            {
+                panic!("ERROR");
             }
+            page_table = unsafe { &*(entry.addr().0 as *mut [PageTableEntry; ENTRY_COUNT]) };
             entry = &page_table[page_numbers[i]];
         }
-        let mut pa = entry.addr();
-        pa.0 += va.page_offset();
-        pa
+        if (entry.permission() & PTE_READ != 0) || (entry.permission() & PTE_EXECUTE != 0) {
+            let mut pa = entry.addr();
+            pa.0 += va.page_offset();
+            return (pa, entry.permission());
+        }
+        panic!("ERROR")
     }
 
     // Map a page when paging is still not enable
@@ -96,7 +100,7 @@ impl PageTable {
         // );
         loop {
             // println!("va_current: {}", va_current.0);
-            let page_table_entry = self.walk_alloc(&va_current, perm);
+            let page_table_entry = self.walk_alloc(&va_current);
             page_table_entry.set_addr(pa, perm | PTE_VALID);
             if va_current.0 == va_end.0 {
                 break;
@@ -106,7 +110,7 @@ impl PageTable {
         }
     }
 
-    fn walk_alloc(&mut self, va: &VirtualAddr, perm: u8) -> &mut PageTableEntry {
+    fn walk_alloc(&mut self, va: &VirtualAddr) -> &mut PageTableEntry {
         let page_numbers = va.virtual_page_numbers(); // TODO : Maybe this should be reversed instead
                                                       // println!("Page numbers: {:?}", page_numbers);
         let mut page_table = &mut self.0;
@@ -118,13 +122,7 @@ impl PageTable {
                 let addr = PAGE_ALLOCATOR.kalloc().unwrap();
                 page_table = unsafe { &mut *(addr as *mut [PageTableEntry; ENTRY_COUNT]) };
                 let page_table_addr = page_table.as_mut_ptr() as usize;
-                if i == 0 {
-                    // A leaf
-                    entry.set_addr(PhysicalAddr(page_table_addr), perm | PTE_VALID);
-                } else {
-                    // Pointer to the next level
-                    entry.set_addr(PhysicalAddr(page_table_addr), PTE_VALID);
-                }
+                entry.set_addr(PhysicalAddr(page_table_addr), PTE_VALID);
                 // println!("Setup new page: {} | {}", page_table_addr, entry.0);
             } else {
                 // println!("Follow page table: {} | {}", entry.addr().0, entry.0);
@@ -182,6 +180,10 @@ pub fn init_paging(fdt: &Fdt) {
     const KERNEL_BASE: usize = 0x80200000; // From the linker
     let kernel_end_addr = unsafe { &_kernel_end as *const u8 as usize };
     assert!(KERNEL_BASE < kernel_end_addr);
+    println!(
+        "Mapping kernel from 0x{:x} - 0x{:x}",
+        KERNEL_BASE, kernel_end_addr
+    );
     kernel_page_table.map_page_nosatp(
         VirtualAddr(KERNEL_BASE),
         PhysicalAddr(KERNEL_BASE),
@@ -205,8 +207,8 @@ pub fn init_paging(fdt: &Fdt) {
     println!("Setup Page Table finished");
 
     let va = VirtualAddr(0x802044c2); // This should equal the pc (program counter) juste before the satp::set(...)
-    let pa = kernel_page_table.get_physical_addr(va);
-    println!("Test: {:?} == {:?}", va.0, pa.0);
+    let (pa, perm) = kernel_page_table.get_physical_addr_perm(va);
+    println!("Test: {:?} == {:?} with perm: 0b{:b}", va.0, pa.0, perm);
 
     let kernel_page_table_addr = kernel_page_table as *const PageTable as usize;
     unsafe {
