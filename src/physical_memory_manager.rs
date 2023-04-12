@@ -7,7 +7,7 @@ extern "C" {
     static _kernel_end: u8;
 }
 
-pub fn parse_reg<'a>(values: &'a [u8]) -> (u64, u64) {
+fn parse_reg(values: &[u8]) -> (u64, u64) {
     let ([addr_values, size_values], reminder) =
         values.as_chunks::<8>() else { panic!("Impossible") };
 
@@ -16,7 +16,7 @@ pub fn parse_reg<'a>(values: &'a [u8]) -> (u64, u64) {
     let address = unsafe { core::mem::transmute::<[u8; 8], u64>(*addr_values) }.to_be();
     let size = unsafe { core::mem::transmute::<[u8; 8], u64>(*size_values) }.to_be();
 
-    return (address, size);
+    (address, size)
 }
 
 #[derive(Debug, Copy, Clone)]

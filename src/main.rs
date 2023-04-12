@@ -3,8 +3,6 @@
 #![feature(int_roundings)]
 #![feature(nonnull_slice_from_raw_parts)]
 #![feature(slice_ptr_get)]
-#![feature(generic_const_exprs)]
-// #![feature(new_uninit)]
 #![no_std]
 #![no_main]
 #![allow(unused_variables)]

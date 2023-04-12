@@ -3,8 +3,6 @@ use core::alloc::AllocError;
 use core::ops::DerefMut;
 use spin::Mutex;
 
-pub struct PhysicalAddress(usize);
-
 pub const PAGE_SIZE: usize = 4096;
 
 pub const fn page_round_down(addr: usize) -> usize {
