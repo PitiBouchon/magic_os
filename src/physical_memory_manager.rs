@@ -2,6 +2,7 @@ use crate::{print, println};
 use fdt::node::MemoryReservation;
 use fdt::standard_nodes::MemoryRegion;
 use fdt::Fdt;
+use crate::kalloc::page_round_up;
 
 extern "C" {
     static _kernel_end: u8;
@@ -89,7 +90,7 @@ fn reserved_memory<'a>(fdt: &'a Fdt) -> impl IntoIterator<Item = MyMemoryRegion>
 }
 
 pub fn get_free_memory(fdt: &Fdt) -> MyMemoryRegion {
-    let kernel_end_addr = unsafe { &_kernel_end as *const u8 as u64 };
+    let kernel_end_addr = page_round_up(unsafe { &_kernel_end as *const u8 as u64 });
 
     for memory_region in fdt.memory().regions() {
         if let Some(mut memory_size) = memory_region.size {

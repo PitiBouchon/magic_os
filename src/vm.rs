@@ -9,6 +9,7 @@ use fdt::Fdt;
 use riscv::register::satp::Mode;
 
 extern "C" {
+    static _kernel_end_text: u8;
     static _kernel_end: u8;
 }
 
@@ -52,24 +53,36 @@ pub fn init_paging(fdt: &Fdt) {
         PhysicalAddr(PLIC),
         0x600000,
         PTE_READ | PTE_WRITE,
-        2
+        0
     );
 
     println!("Setup Kernel Code Paging");
 
     const KERNEL_BASE: u64 = 0x80200000; // From the linker
-    let kernel_end_addr = unsafe { &_kernel_end as *const u8 as u64 };
-    assert!(KERNEL_BASE < kernel_end_addr);
+    let kernel_text_end_addr = page_round_up(unsafe { &_kernel_end_text as *const u8 as u64 });
+    assert!(KERNEL_BASE < kernel_text_end_addr);
     println!(
         "Mapping kernel from 0x{:x} - 0x{:x}",
-        KERNEL_BASE, kernel_end_addr
+        KERNEL_BASE, kernel_text_end_addr
     );
     kernel_page_table.map_pages(
         VirtualAddr(KERNEL_BASE),
         PhysicalAddr(KERNEL_BASE),
-        (kernel_end_addr - KERNEL_BASE) as usize,
+        (kernel_text_end_addr - KERNEL_BASE) as usize,
         PTE_READ | PTE_EXECUTE,
-        2
+        0
+    );
+
+    println!("Setup Kernel Data Paging");
+
+    let kernel_end_addr = page_round_up(unsafe { &_kernel_end as *const u8 as u64 });
+    assert!(kernel_end_addr > kernel_text_end_addr);
+    kernel_page_table.map_pages(
+        VirtualAddr(kernel_text_end_addr),
+        PhysicalAddr(kernel_text_end_addr),
+        (kernel_end_addr - kernel_text_end_addr) as usize,
+        PTE_READ | PTE_WRITE,
+        0
     );
 
     println!("Setup Memory Paging");
@@ -77,18 +90,14 @@ pub fn init_paging(fdt: &Fdt) {
     let start_memory = PAGE_ALLOCATOR.start_addr();
     let memory_size = PAGE_ALLOCATOR.end_addr() - start_memory;
     assert!(memory_size > 0);
-    assert!(start_memory > kernel_end_addr as usize);
+    assert!(start_memory >= kernel_end_addr as usize);
     kernel_page_table.map_pages(
         VirtualAddr(start_memory as u64),
         PhysicalAddr(start_memory as u64),
         memory_size,
         PTE_READ | PTE_WRITE,
-        2
+        0
     );
-
-    let va_test = VirtualAddr(kernelvec as *const () as u64);
-    let (pa_test, perm_test) = kernel_page_table.get_phys_addr_perm(&va_test);
-    println!("Test 0x{:x} = 0x{:x} | 0b{:b}", va_test.0, pa_test.0, perm_test.0);
 
     println!("Setup Page Table finished");
 

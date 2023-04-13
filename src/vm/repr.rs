@@ -119,12 +119,27 @@ pub enum EntryKind {
     NotValid
 }
 
-pub const PTE_VALID: u8 = 0b0000_0001;
+// See section 4.3.1 Addressing and Memory Protection (RiscV privileged manual)
+pub const PTE_VALID: u8 = 0b0000_0001; // If the page is valid
 pub const PTE_READ: u8 = 0b0000_0010;
 pub const PTE_WRITE: u8 = 0b0000_0100;
 pub const PTE_EXECUTE: u8 = 0b0000_1000;
 // const PTE_USER: u8 = 0b0001_0000;
+
+/*
+The G bit designates a global mapping.
+Global mappings are those that exist in all address spaces.
+For non-leaf PTEs, the global setting implies that all mappings in the subsequent levels of the page table are global.
+Note that failing to mark a global mapping as global merely reduces performance, whereas marking a non-global mapping as global is a software bug that, after switching to an address space with a different non-global mapping for that address range, can unpredictably result in either mapping being used.
+ */
 // const PTE_GLOBAL: u8 = 0b0010_0000;
+
+/*
+Each leaf PTE contains an accessed (A) and dirty (D) bit.
+The A bit indicates the virtual page has been read, written,
+or fetched from since the last time the A bit was cleared.
+The D bit indicates the virtual page has been written since the last time the D bit was cleared.
+ */
 // const PTE_ACCESS: u8 = 0b0100_0000;
 // const PTE_DIRTY: u8 = 0b1000_0000;
 
