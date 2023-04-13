@@ -5,12 +5,12 @@ use spin::Mutex;
 
 pub const PAGE_SIZE: usize = 4096;
 
-pub const fn page_round_down(addr: usize) -> usize {
-    addr & !(PAGE_SIZE - 1)
+pub const fn page_round_down(addr: u64) -> u64 {
+    addr & !(PAGE_SIZE as u64 - 1)
 }
 
-pub const fn page_round_up(addr: usize) -> usize {
-    page_round_down(addr + PAGE_SIZE - 1)
+pub const fn page_round_up(addr: u64) -> u64 {
+    page_round_down(addr + PAGE_SIZE as u64 - 1)
 }
 
 struct Node {
@@ -32,10 +32,10 @@ pub struct StaticPageAllocator(Mutex<PageAllocator>);
 
 impl PageAllocator {
     fn init(&mut self, free_memory_region: MyMemoryRegion) {
-        let start_memory_addr = page_round_up(free_memory_region.address as usize);
+        let start_memory_addr = page_round_up(free_memory_region.address);
         let end_memory_addr =
-            page_round_down((free_memory_region.address + free_memory_region.size) as usize);
-        self.start = start_memory_addr;
+            page_round_down(free_memory_region.address + free_memory_region.size);
+        self.start = start_memory_addr as usize;
         let mut old_node = start_memory_addr as *mut Node;
         unsafe {
             (*old_node).next = None;
@@ -43,17 +43,17 @@ impl PageAllocator {
         // TODO : Find the error
         for current_addr in (start_memory_addr..)
             .step_by(PAGE_SIZE)
-            .take_while(|&addr| addr + PAGE_SIZE < end_memory_addr)
+            .take_while(|&addr| addr + (PAGE_SIZE as u64) < end_memory_addr)
         {
             let mut next_node = current_addr as *mut Node;
             unsafe {
                 (*next_node).next = None;
-                (*old_node).next = Some(current_addr);
+                (*old_node).next = Some(current_addr as usize);
             }
             old_node = next_node;
         }
         self.end = old_node as usize;
-        self.node = Some(start_memory_addr);
+        self.node = Some(start_memory_addr as usize);
     }
 }
 
