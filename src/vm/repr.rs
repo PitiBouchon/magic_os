@@ -83,8 +83,28 @@ pub struct PageTableEntry(u64);
 #[derive(Debug)]
 pub struct Permission(pub u8);
 
+// TODO : Find a solution to this copy-paste
+
 impl From<(PageTableEntry, PageOffset)> for PhysicalAddr {
     fn from((entry, offset): (PageTableEntry, PageOffset)) -> Self {
+        let mut res = 0u64;
+        res.set_bits(0..12, offset.0 as u64);
+        res.set_bits(12..55, entry.ppn().0);
+        PhysicalAddr(res)
+    }
+}
+
+impl From<(&PageTableEntry, PageOffset)> for PhysicalAddr {
+    fn from((entry, offset): (&PageTableEntry, PageOffset)) -> Self {
+        let mut res = 0u64;
+        res.set_bits(0..12, offset.0 as u64);
+        res.set_bits(12..55, entry.ppn().0);
+        PhysicalAddr(res)
+    }
+}
+
+impl From<(&PageTableEntry, &PageOffset)> for PhysicalAddr {
+    fn from((entry, offset): (&PageTableEntry, &PageOffset)) -> Self {
         let mut res = 0u64;
         res.set_bits(0..12, offset.0 as u64);
         res.set_bits(12..55, entry.ppn().0);
@@ -135,6 +155,10 @@ impl PageTableEntry {
 
     pub fn is_zero(&self) -> bool {
         self.0 == 0
+    }
+
+    pub fn perm(&self) -> Permission {
+        Permission(self.0.get_bits(0..8) as u8)
     }
 
     pub fn kind(&self) -> EntryKind {

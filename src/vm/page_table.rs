@@ -9,8 +9,33 @@ const ENTRY_COUNT: u16 = 512;
 pub struct PageTable([PageTableEntry; ENTRY_COUNT as usize]);
 
 impl PageTable {
-    fn get_entry(&mut self, vpn: VirtualPageNumber) -> &mut PageTableEntry {
+    fn get_entry_mut(&mut self, vpn: VirtualPageNumber) -> &mut PageTableEntry {
         &mut self.0[vpn.0 as usize]
+    }
+
+    fn get_entry(&self, vpn: VirtualPageNumber) -> &PageTableEntry {
+        &self.0[vpn.0 as usize]
+    }
+
+    pub fn get_phys_addr_perm(&self, va: &VirtualAddr) -> (PhysicalAddr, Permission) {
+        let page_numbers = va.virtual_page_numbers().into_iter().rev();
+        let mut page_table = self;
+
+        for vpn in page_numbers {
+            let entry = page_table.get_entry(vpn);
+            match entry.kind() {
+                EntryKind::Leaf => {
+                    return ((entry, va.page_offset()).into(), entry.perm());
+                }
+                EntryKind::Branch(page_table_addr) => {
+                    let new_page_table = unsafe { & *(page_table_addr.0 as *const PageTable) };
+                    page_table = new_page_table;
+                }
+                EntryKind::NotValid => panic!("IMPOSSIBLE"),
+            }
+        }
+
+        panic!("IMPOSSIBLE")
     }
 
     pub fn map_pages(&mut self, mut va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8, rsw: u8) {
@@ -29,7 +54,7 @@ impl PageTable {
     pub fn walk_alloc(&mut self, va: &VirtualAddr) -> &mut PageTableEntry {
         let mut page_numbers = va.virtual_page_numbers().into_iter().rev();
         let mut page_table = self;
-        let mut entry = page_table.get_entry(page_numbers.next().unwrap());
+        let mut entry = page_table.get_entry_mut(page_numbers.next().unwrap());
 
         for vpn in page_numbers {
             match entry.kind() {
@@ -46,7 +71,7 @@ impl PageTable {
                     page_table = new_page_table;
                 }
             }
-            entry = page_table.get_entry(vpn);
+            entry = page_table.get_entry_mut(vpn);
         }
 
         assert!(entry.is_zero());

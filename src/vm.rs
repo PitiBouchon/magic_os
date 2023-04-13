@@ -2,12 +2,11 @@ mod repr;
 mod page_table;
 
 use crate::kalloc::{page_round_down, page_round_up, PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::println;
+use crate::{kernelvec, println};
 use page_table::PageTable;
 use repr::{VirtualAddr, PhysicalAddr, Permission, PTE_READ, PTE_EXECUTE, PTE_WRITE};
 use fdt::Fdt;
 use riscv::register::satp::Mode;
-use crate::sbi_print::sbi_print_str;
 
 extern "C" {
     static _kernel_end: u8;
@@ -16,6 +15,7 @@ extern "C" {
 static mut KERNEL_PAGE: Option<&mut PageTable> = None;
 
 pub fn init_paging(fdt: &Fdt) {
+    // TODO : use Fdt for mapping the pages
     let kernel_page_table: &mut PageTable =
         unsafe { &mut *(PAGE_ALLOCATOR.kalloc().unwrap() as *mut PageTable) };
 
@@ -46,7 +46,7 @@ pub fn init_paging(fdt: &Fdt) {
 
     println!("Setup PLIC Paging");
 
-    const PLIC: u64 = 0xc000000;
+    const PLIC: u64 = 0x0c000000;
     kernel_page_table.map_pages(
         VirtualAddr(PLIC),
         PhysicalAddr(PLIC),
@@ -85,6 +85,10 @@ pub fn init_paging(fdt: &Fdt) {
         PTE_READ | PTE_WRITE,
         2
     );
+
+    let va_test = VirtualAddr(kernelvec as *const () as u64);
+    let (pa_test, perm_test) = kernel_page_table.get_phys_addr_perm(&va_test);
+    println!("Test 0x{:x} = 0x{:x} | 0b{:b}", va_test.0, pa_test.0, perm_test.0);
 
     println!("Setup Page Table finished");
 
