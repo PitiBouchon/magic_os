@@ -130,8 +130,11 @@ pub const PTE_EXECUTE: u8 = 0b0000_1000;
 The G bit designates a global mapping.
 Global mappings are those that exist in all address spaces.
 For non-leaf PTEs, the global setting implies that all mappings in the subsequent levels of the page table are global.
-Note that failing to mark a global mapping as global merely reduces performance, whereas marking a non-global mapping as global is a software bug that, after switching to an address space with a different non-global mapping for that address range, can unpredictably result in either mapping being used.
- */
+Note that failing to mark a global mapping as global merely reduces performance,
+whereas marking a non-global mapping as global is a software bug that,
+after switching to an address space with a different non-global mapping for that address range,
+can unpredictably result in either mapping being used.
+*/
 // const PTE_GLOBAL: u8 = 0b0010_0000;
 
 /*
@@ -147,7 +150,7 @@ impl PageTableEntry {
     pub fn new(ppn: Ppn, rsw: u8, perm: Permission) -> Self {
         let mut value = 0u64;
         value.set_bits(0..8, perm.0 as u64);
-        value.set_bits(8..10, rsw as u64);
+        value.set_bits(8..10, rsw as u64); // These are just 2 bits free of use for the supervisor
         value.set_bits(10..54, ppn.0);
         Self(value)
     }
