@@ -1,4 +1,3 @@
-#[allow(dead_code)]
 fn sbi_print_str(s: &str) {
     for c in s.bytes() {
         if c.is_ascii() {

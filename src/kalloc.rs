@@ -1,7 +1,9 @@
 use crate::physical_memory_manager::MyMemoryRegion;
 use core::alloc::AllocError;
 use core::ops::DerefMut;
+use core::ptr::NonNull;
 use spin::Mutex;
+use crate::println;
 
 pub const PAGE_SIZE: usize = 4096;
 
@@ -14,8 +16,9 @@ pub const fn page_round_up(addr: u64) -> u64 {
 }
 
 struct Node {
-    next: Option<usize>,
+    next: Option<NonNull<Node>>,
 }
+
 
 pub unsafe fn init_page_allocator(free_memory_region: MyMemoryRegion) {
     PAGE_ALLOCATOR.0.lock().init(free_memory_region);
@@ -25,8 +28,10 @@ pub unsafe fn init_page_allocator(free_memory_region: MyMemoryRegion) {
 struct PageAllocator {
     start: usize,
     end: usize,
-    node: Option<usize>,
+    node: Option<NonNull<Node>>,
 }
+// TODO : It may be a bad idea
+unsafe impl Send for PageAllocator {}
 
 pub struct StaticPageAllocator(Mutex<PageAllocator>);
 
@@ -36,24 +41,23 @@ impl PageAllocator {
         let end_memory_addr =
             page_round_down(free_memory_region.address + free_memory_region.size);
         self.start = start_memory_addr as usize;
-        let mut old_node = start_memory_addr as *mut Node;
+        let mut old_node = NonNull::new(start_memory_addr as *mut Node).unwrap();
+        self.node = Some(old_node); // Set the First Node
         unsafe {
-            (*old_node).next = None;
+            old_node.as_mut().next = None;
         }
-        // TODO : Find the error
         for current_addr in (start_memory_addr..)
             .step_by(PAGE_SIZE)
             .take_while(|&addr| addr + (PAGE_SIZE as u64) < end_memory_addr)
         {
-            let mut next_node = current_addr as *mut Node;
+            let mut next_node = NonNull::new(current_addr as *mut Node).unwrap();
             unsafe {
-                (*next_node).next = None;
-                (*old_node).next = Some(current_addr as usize);
+                next_node.as_mut().next = None;
+                old_node.as_mut().next = Some(next_node);
             }
             old_node = next_node;
         }
-        self.end = old_node as usize;
-        self.node = Some(start_memory_addr as usize);
+        self.end = usize::from(old_node.addr());
     }
 }
 
@@ -64,43 +68,47 @@ pub static PAGE_ALLOCATOR: StaticPageAllocator = StaticPageAllocator(Mutex::new(
 }));
 
 impl StaticPageAllocator {
+    #[allow(unused)]
     pub fn start_addr(&self) -> usize {
         self.0.lock().start
     }
 
+    #[allow(unused)]
     pub fn end_addr(&self) -> usize {
         self.0.lock().end
     }
 
-    pub fn kalloc(&self) -> Result<usize, AllocError> {
+    pub fn kalloc(&self) -> Result<NonNull<u8>, AllocError> {
         let mut alloc = self.0.lock();
         let first_node_addr = alloc.node.ok_or(AllocError)?;
         unsafe {
-            alloc.node = (*(first_node_addr as *mut Node)).next;
+            alloc.node = first_node_addr.as_ref().next;
         }
 
         unsafe {
-            memset(first_node_addr, PAGE_SIZE, 0);
+            memset(first_node_addr.cast(), PAGE_SIZE, 0);
         }
-        Ok(first_node_addr)
+        Ok(first_node_addr.cast())
     }
 
-    pub fn kfree(&self, physical_address: usize) {
-        assert_eq!(physical_address % PAGE_SIZE, 0);
+    pub fn kfree(&self, physical_address: NonNull<u8>) {
+        assert_eq!(usize::from(physical_address.addr()) % PAGE_SIZE, 0);
         let mut alloc = self.0.lock();
-        assert!(physical_address >= alloc.start);
-        assert!(physical_address < alloc.end);
+        assert!(usize::from(physical_address.addr()) >= alloc.start);
+        assert!(usize::from(physical_address.addr()) < alloc.end);
 
-        let new_node = physical_address as *mut Node;
+        let mut new_node: NonNull<Node> = physical_address.cast();
         unsafe {
-            (*new_node).next = alloc.node.map(|node| (node as *mut Node) as usize);
-            alloc.node = (*new_node).next;
+            new_node.as_mut().next = alloc.node;
+            alloc.node = new_node.as_ref().next;
         }
     }
 }
 
-pub unsafe fn memset(addr: usize, size: usize, value: u8) {
-    for addr in addr..(addr + size) {
+pub unsafe fn memset(addr: NonNull<usize>, size: usize, value: u8) {
+    let start_addr = usize::from(addr.addr());
+    let end_addr = usize::from(addr.addr()) + size;
+    for addr in start_addr..end_addr {
         unsafe {
             let ptr = addr as *mut u8;
             ptr.write(value);

@@ -44,11 +44,17 @@ impl PageTable {
 
         while va != va_end {
             let page_table_entry_leaf = self.walk_alloc(&va);
+            // if !page_table_entry_leaf.is_zero() {
+            //     return Err(());
+            // }
             assert!(!page_table_entry_leaf.is_valid());
+            assert!(page_table_entry_leaf.is_zero());
             *page_table_entry_leaf = PageTableEntry::new(pa.ppn(), 0, Permission(perm | PTE_VALID));
             pa.0 += PAGE_SIZE as u64;
             va.0 += PAGE_SIZE as u64;
         }
+
+        // Ok(())
     }
 
     pub fn walk_alloc(&mut self, va: &VirtualAddr) -> &mut PageTableEntry {
@@ -65,7 +71,7 @@ impl PageTable {
                 }
                 EntryKind::NotValid => {
                     // Allocate a page for a new PageTable
-                    let new_page_table_addr = PAGE_ALLOCATOR.kalloc().unwrap();
+                    let new_page_table_addr = PAGE_ALLOCATOR.kalloc().unwrap().cast().as_ptr();
                     let new_page_table = unsafe { &mut *(new_page_table_addr as *mut PageTable) };
                     *entry = PageTableEntry::new(PhysicalAddr(new_page_table_addr as u64).ppn(), 0, Permission(PTE_VALID));
                     page_table = new_page_table;
@@ -74,7 +80,6 @@ impl PageTable {
             entry = page_table.get_entry_mut(vpn);
         }
 
-        assert!(entry.is_zero());
         entry
     }
 }

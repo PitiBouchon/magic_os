@@ -1,4 +1,5 @@
 // See : The RISCV Privileged Manual
+#![allow(unused)]
 
 use bit_field::BitField;
 use crate::kalloc::{page_round_down, page_round_up};
@@ -124,7 +125,7 @@ pub const PTE_VALID: u8 = 0b0000_0001; // If the page is valid
 pub const PTE_READ: u8 = 0b0000_0010;
 pub const PTE_WRITE: u8 = 0b0000_0100;
 pub const PTE_EXECUTE: u8 = 0b0000_1000;
-// const PTE_USER: u8 = 0b0001_0000;
+// const PTE_USER: u8 = 0b0001_0000; // I think it indicates if it is accessible in User mode
 
 /*
 The G bit designates a global mapping.

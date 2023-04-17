@@ -3,6 +3,7 @@
 #![feature(int_roundings)]
 #![feature(nonnull_slice_from_raw_parts)]
 #![feature(slice_ptr_get)]
+#![feature(strict_provenance)]
 #![no_std]
 #![no_main]
 #![allow(unused_variables)]
@@ -10,17 +11,19 @@
 
 // extern crate alloc;
 
-// mod allocator;
 mod kalloc;
 mod physical_memory_manager;
 mod sbi_print;
 mod start;
 mod trap;
 mod vm;
+// mod allocator;
 
-// use alloc::string::String;
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
+use crate::kalloc::PAGE_SIZE;
+use crate::physical_memory_manager::MyMemoryRegion;
+use crate::vm::KERNEL_PAGE_TABLE;
 
 const OS_STACK_SIZE: usize = 65536;
 
@@ -52,6 +55,10 @@ fn main(hart_id: usize, dtb: usize) -> ! {
         kalloc::init_page_allocator(free_memory_region);
     }
     vm::init_paging(&fdt);
+    // allocator::init_heap();
+
+    // let test = alloc::string::String::from("Hell World !");
+    // println!("{}", test);
 
     println!("---------- Kernel End ----------");
     loop {}
