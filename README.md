@@ -29,7 +29,7 @@ And in another terminal (in this directory) `riscv64-unknown-elf-gdb`
 
 ## Todo
 
+- [ ] Add timer interrupt (with sstc)
 - [ ] Add disk drive support
 - [ ] Add processes and scheduler
 - [ ] Add user programs
-
