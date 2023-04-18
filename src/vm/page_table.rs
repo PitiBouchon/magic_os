@@ -1,6 +1,9 @@
 use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
 use crate::println;
-use crate::vm::repr::{EntryKind, PageOffset, PageTableEntry, Permission, PhysicalAddr, PTE_VALID, VirtualAddr, VirtualPageNumber};
+use crate::vm::repr::{
+    EntryKind, PageOffset, PageTableEntry, Permission, PhysicalAddr, VirtualAddr,
+    VirtualPageNumber, PTE_VALID,
+};
 
 // 4096 bytes (PAGE_SIZE) / 8 bytes (64 bits) per entry = 512 entries
 const ENTRY_COUNT: u16 = 512;
@@ -28,7 +31,7 @@ impl PageTable {
                     return ((entry, va.page_offset()).into(), entry.perm());
                 }
                 EntryKind::Branch(page_table_addr) => {
-                    let new_page_table = unsafe { & *(page_table_addr.0 as *const PageTable) };
+                    let new_page_table = unsafe { &*(page_table_addr.0 as *const PageTable) };
                     page_table = new_page_table;
                 }
                 EntryKind::NotValid => panic!("IMPOSSIBLE"),
@@ -38,7 +41,14 @@ impl PageTable {
         panic!("IMPOSSIBLE")
     }
 
-    pub fn map_pages(&mut self, mut va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8, _rsw: u8) {
+    pub fn map_pages(
+        &mut self,
+        mut va: VirtualAddr,
+        mut pa: PhysicalAddr,
+        size: usize,
+        perm: u8,
+        _rsw: u8,
+    ) {
         assert!(size > 0);
         let va_end = VirtualAddr(va.0 + size as u64).page_round_up();
 
@@ -75,7 +85,11 @@ impl PageTable {
                     // Allocate a page for a new PageTable
                     let new_page_table_addr = PAGE_ALLOCATOR.kalloc().unwrap().cast().as_ptr();
                     let new_page_table = unsafe { &mut *(new_page_table_addr as *mut PageTable) };
-                    *entry = PageTableEntry::new(PhysicalAddr(new_page_table_addr as u64).ppn(), 0, Permission(PTE_VALID));
+                    *entry = PageTableEntry::new(
+                        PhysicalAddr(new_page_table_addr as u64).ppn(),
+                        0,
+                        Permission(PTE_VALID),
+                    );
                     page_table = new_page_table;
                 }
             }

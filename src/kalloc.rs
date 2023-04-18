@@ -1,9 +1,9 @@
 use crate::physical_memory_manager::MyMemoryRegion;
+use crate::println;
 use core::alloc::AllocError;
 use core::ops::DerefMut;
 use core::ptr::NonNull;
 use spin::Mutex;
-use crate::println;
 
 pub const PAGE_SIZE: usize = 4096;
 
@@ -18,7 +18,6 @@ pub const fn page_round_up(addr: u64) -> u64 {
 struct Node {
     next: Option<NonNull<Node>>,
 }
-
 
 pub unsafe fn init_page_allocator(free_memory_region: MyMemoryRegion) {
     PAGE_ALLOCATOR.0.lock().init(free_memory_region);
@@ -38,8 +37,7 @@ pub struct StaticPageAllocator(Mutex<PageAllocator>);
 impl PageAllocator {
     fn init(&mut self, free_memory_region: MyMemoryRegion) {
         let start_memory_addr = page_round_up(free_memory_region.address);
-        let end_memory_addr =
-            page_round_down(free_memory_region.address + free_memory_region.size);
+        let end_memory_addr = page_round_down(free_memory_region.address + free_memory_region.size);
         self.start = start_memory_addr as usize;
         let mut old_node = NonNull::new(start_memory_addr as *mut Node).unwrap();
         self.node = Some(old_node); // Set the First Node

@@ -1,12 +1,12 @@
-pub mod repr;
 mod page_table;
+pub mod repr;
 
-use core::ops::{Deref, DerefMut};
 use crate::kalloc::{page_round_down, page_round_up, PAGE_ALLOCATOR, PAGE_SIZE};
 use crate::{kernelvec, println};
-use page_table::PageTable;
-use repr::{VirtualAddr, PhysicalAddr, Permission, PTE_READ, PTE_EXECUTE, PTE_WRITE};
+use core::ops::{Deref, DerefMut};
 use fdt::Fdt;
+use page_table::PageTable;
+use repr::{Permission, PhysicalAddr, VirtualAddr, PTE_EXECUTE, PTE_READ, PTE_WRITE};
 use riscv::register::satp::Mode;
 use spin::{Lazy, Mutex};
 
@@ -87,7 +87,7 @@ pub fn init_paging(_fdt: &Fdt) {
         PhysicalAddr(KERNEL_BASE),
         (kernel_text_end_addr - KERNEL_BASE) as usize,
         PTE_READ | PTE_EXECUTE,
-        0
+        0,
     );
 
     println!("Setup Kernel Data Paging");
@@ -99,7 +99,7 @@ pub fn init_paging(_fdt: &Fdt) {
         PhysicalAddr(kernel_text_end_addr),
         (kernel_end_addr - kernel_text_end_addr) as usize,
         PTE_READ | PTE_WRITE,
-        0
+        0,
     );
 
     println!("Setup Memory Paging");
@@ -113,7 +113,7 @@ pub fn init_paging(_fdt: &Fdt) {
         PhysicalAddr(start_memory as u64),
         memory_size,
         PTE_READ | PTE_WRITE,
-        0
+        0,
     );
 
     println!("Setup Page Table finished");
@@ -123,7 +123,11 @@ pub fn init_paging(_fdt: &Fdt) {
     unsafe {
         // Enable paging
         riscv::asm::sfence_vma_all();
-        riscv::register::satp::set(Mode::Sv39, 0, PhysicalAddr(kernel_page_table_addr).ppn().get() as usize);
+        riscv::register::satp::set(
+            Mode::Sv39,
+            0,
+            PhysicalAddr(kernel_page_table_addr).ppn().get() as usize,
+        );
         riscv::asm::sfence_vma_all();
     }
 

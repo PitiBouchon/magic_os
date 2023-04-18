@@ -1,13 +1,13 @@
 use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
 use crate::println;
+use crate::vm::repr::{PhysicalAddr, VirtualAddr, PTE_READ, PTE_WRITE};
+use crate::vm::KERNEL_PAGE_TABLE;
 use core::alloc::{GlobalAlloc, Layout};
 use core::ops::DerefMut;
 use core::ptr::NonNull;
 use core::usize;
 use spin::lazy::Lazy;
 use spin::Mutex;
-use crate::vm::KERNEL_PAGE_TABLE;
-use crate::vm::repr::{PhysicalAddr, PTE_READ, PTE_WRITE, VirtualAddr};
 
 struct FreeMemoryNode {
     next: Option<NonNull<FreeMemoryNode>>,
@@ -37,7 +37,7 @@ impl MyGlobalAllocator {
             alloc.start_address.clone(),
             PAGE_SIZE,
             PTE_READ | PTE_WRITE,
-            0
+            0,
         );
 
         alloc.allocated = PAGE_SIZE;
@@ -53,6 +53,7 @@ impl MyGlobalAllocator {
 
 unsafe impl GlobalAlloc for MyGlobalAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        // TODO : respect alignment
         let alloc = self.0.lock();
         let mut nodes = alloc.nodes;
         let mut last_node_opt: NonNull<FreeMemoryNode> = alloc.nodes.unwrap(); // Should panic if no regions
@@ -61,14 +62,18 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
 
             if node.as_ref().size >= layout.size() {
                 if layout.size() + core::mem::size_of::<FreeMemoryNode>() > node.as_ref().size {
-                    let mut new_node = NonNull::new(last_node_opt.as_ptr().byte_offset(layout.size() as isize)).unwrap();
-                    *new_node.as_mut() = FreeMemoryNode { next: node.as_ref().next, size: node.as_ref().size - layout.size() };
+                    let mut new_node =
+                        NonNull::new(last_node_opt.as_ptr().byte_offset(layout.size() as isize))
+                            .unwrap();
+                    *new_node.as_mut() = FreeMemoryNode {
+                        next: node.as_ref().next,
+                        size: node.as_ref().size - layout.size(),
+                    };
                     last_node_opt.as_mut().next = Some(new_node);
-                }
-                else {
+                } else {
                     last_node_opt.as_mut().next = node.as_ref().next;
                 }
-                return usize::from(node.addr()) as *mut u8
+                return usize::from(node.addr()) as *mut u8;
             }
             last_node_opt = node;
             nodes = non_null_node.as_mut().next;

@@ -1,9 +1,9 @@
 // See : The RISCV Privileged Manual
 #![allow(unused)]
 
-use bit_field::BitField;
 use crate::kalloc::{page_round_down, page_round_up};
 use crate::println;
+use bit_field::BitField;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct VirtualAddr(pub u64);
@@ -117,7 +117,7 @@ impl From<(&PageTableEntry, &PageOffset)> for PhysicalAddr {
 pub enum EntryKind {
     Leaf,
     Branch(PhysicalAddr),
-    NotValid
+    NotValid,
 }
 
 // See section 4.3.1 Addressing and Memory Protection (RiscV privileged manual)

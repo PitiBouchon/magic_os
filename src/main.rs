@@ -11,19 +11,19 @@
 
 extern crate alloc;
 
+mod allocator;
 mod kalloc;
 mod physical_memory_manager;
 mod sbi_print;
 mod start;
 mod trap;
 mod vm;
-mod allocator;
 
-use core::panic::PanicInfo;
-use riscv::register::stvec::TrapMode;
 use crate::kalloc::PAGE_SIZE;
 use crate::physical_memory_manager::MyMemoryRegion;
 use crate::vm::KERNEL_PAGE_TABLE;
+use core::panic::PanicInfo;
+use riscv::register::stvec::TrapMode;
 
 const OS_STACK_SIZE: usize = 65536;
 
