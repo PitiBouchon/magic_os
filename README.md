@@ -24,8 +24,12 @@ And in another terminal (in this directory) `riscv64-unknown-elf-gdb`
 ## Done
 
 - [x] Parse the DTB (using a library)
+- [x] Create the page tables
+- [x] Create my own allocator (could be better)
 
 ## Todo
 
-- [ ] Create the page tables
-- [ ] Create my own allocator
+- [ ] Add disk drive support
+- [ ] Add processes and scheduler
+- [ ] Add user programs
+
