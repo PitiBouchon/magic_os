@@ -4,12 +4,13 @@
 #![feature(nonnull_slice_from_raw_parts)]
 #![feature(slice_ptr_get)]
 #![feature(strict_provenance)]
+#![feature(pointer_byte_offsets)]
 #![no_std]
 #![no_main]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 
-// extern crate alloc;
+extern crate alloc;
 
 mod kalloc;
 mod physical_memory_manager;
@@ -17,7 +18,7 @@ mod sbi_print;
 mod start;
 mod trap;
 mod vm;
-// mod allocator;
+mod allocator;
 
 use core::panic::PanicInfo;
 use riscv::register::stvec::TrapMode;
@@ -55,10 +56,11 @@ fn main(hart_id: usize, dtb: usize) -> ! {
         kalloc::init_page_allocator(free_memory_region);
     }
     vm::init_paging(&fdt);
-    // allocator::init_heap();
+    allocator::init_heap();
 
-    // let test = alloc::string::String::from("Hell World !");
-    // println!("{}", test);
+    let test = alloc::string::String::from("Hell World !");
+    println!("{}", test);
+    drop(test);
 
     println!("---------- Kernel End ----------");
     loop {}

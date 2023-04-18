@@ -1,4 +1,4 @@
-mod repr;
+pub mod repr;
 mod page_table;
 
 use core::ops::{Deref, DerefMut};
@@ -101,19 +101,19 @@ pub fn init_paging(fdt: &Fdt) {
         0
     );
 
-    // println!("Setup Memory Paging");
-    //
-    // let start_memory = PAGE_ALLOCATOR.start_addr();
-    // let memory_size = PAGE_ALLOCATOR.end_addr() - start_memory;
-    // assert!(memory_size > 0);
-    // assert!(start_memory >= kernel_end_addr as usize);
-    // kernel_page_table.map_pages(
-    //     VirtualAddr(start_memory as u64),
-    //     PhysicalAddr(start_memory as u64),
-    //     memory_size,
-    //     PTE_READ | PTE_WRITE,
-    //     0
-    // );
+    println!("Setup Memory Paging");
+
+    let start_memory = PAGE_ALLOCATOR.start_addr();
+    let memory_size = PAGE_ALLOCATOR.end_addr() - start_memory;
+    assert!(memory_size > 0);
+    assert!(start_memory >= kernel_end_addr as usize);
+    kernel_page_table.map_pages(
+        VirtualAddr(start_memory as u64),
+        PhysicalAddr(start_memory as u64),
+        memory_size,
+        PTE_READ | PTE_WRITE,
+        0
+    );
 
     println!("Setup Page Table finished");
 

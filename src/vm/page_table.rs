@@ -44,18 +44,20 @@ impl PageTable {
 
         while va != va_end {
             let page_table_entry_leaf = self.walk_alloc(&va);
-            // if !page_table_entry_leaf.is_zero() {
-            //     return Err(());
-            // }
-            assert!(!page_table_entry_leaf.is_valid());
-            assert!(page_table_entry_leaf.is_zero());
+            // assert!(!page_table_entry_leaf.is_valid());
+            // assert!(page_table_entry_leaf.is_zero());
             *page_table_entry_leaf = PageTableEntry::new(pa.ppn(), 0, Permission(perm | PTE_VALID));
             pa.0 += PAGE_SIZE as u64;
             va.0 += PAGE_SIZE as u64;
         }
-
-        // Ok(())
     }
+
+    // // TODO : Unmap only one page for now (should do more)
+    // pub fn unmap_pages(&mut self, mut va: VirtualAddr) {
+    //     let page_table_entry_leaf = self.walk_alloc(&va);
+    //     assert!(page_table_entry_leaf.is_valid());
+    //     *page_table_entry_leaf = PageTableEntry::new_zero();
+    // }
 
     pub fn walk_alloc(&mut self, va: &VirtualAddr) -> &mut PageTableEntry {
         let mut page_numbers = va.virtual_page_numbers().into_iter().rev();

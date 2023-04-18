@@ -44,7 +44,7 @@ impl VirtualAddr {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct PhysicalAddr(pub u64);
 
 #[derive(Debug)]
@@ -154,6 +154,10 @@ impl PageTableEntry {
         value.set_bits(8..10, rsw as u64); // These are just 2 bits free of use for the supervisor
         value.set_bits(10..54, ppn.0);
         Self(value)
+    }
+
+    pub fn new_zero() -> Self {
+        Self(0)
     }
 
     pub fn is_valid(&self) -> bool {
