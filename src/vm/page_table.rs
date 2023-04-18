@@ -38,7 +38,7 @@ impl PageTable {
         panic!("IMPOSSIBLE")
     }
 
-    pub fn map_pages(&mut self, mut va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8, rsw: u8) {
+    pub fn map_pages(&mut self, mut va: VirtualAddr, mut pa: PhysicalAddr, size: usize, perm: u8, _rsw: u8) {
         assert!(size > 0);
         let va_end = VirtualAddr(va.0 + size as u64).page_round_up();
 

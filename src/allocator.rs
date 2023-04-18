@@ -31,7 +31,6 @@ impl MyGlobalAllocator {
         let first_page = PAGE_ALLOCATOR.kalloc().unwrap();
         let va = VirtualAddr(usize::from(first_page.addr()) as u64);
         let mut kernel_page_table = KERNEL_PAGE_TABLE.lock();
-        let (pa, perm) = kernel_page_table.get_phys_addr_perm(&va);
 
         kernel_page_table.map_pages(
             va,
@@ -74,10 +73,11 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
             last_node_opt = node;
             nodes = non_null_node.as_mut().next;
         }
-        todo!()
+        // TODO : Should merge contiguous nodes or allocate more pages
+        panic!("Not enough space on the heap");
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
         todo!()
     }
 }

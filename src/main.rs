@@ -7,7 +7,6 @@
 #![feature(pointer_byte_offsets)]
 #![no_std]
 #![no_main]
-#![allow(unused_variables)]
 #![allow(unused_imports)]
 
 extern crate alloc;

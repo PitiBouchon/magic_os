@@ -21,7 +21,8 @@ pub static KERNEL_PAGE_TABLE: Lazy<Mutex<&mut PageTable>> = Lazy::new(|| {
     Mutex::new(kernel_page_table)
 });
 
-pub fn init_paging(fdt: &Fdt) {
+pub fn init_paging(_fdt: &Fdt) {
+    // TODO : Should use the Fdt to map things I guess
     println!("Setup Page Table KERNEL");
 
     let mut kernel_page_table = KERNEL_PAGE_TABLE.lock();
