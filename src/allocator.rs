@@ -71,11 +71,10 @@ pub const fn align_round_up(addr: usize, align: usize) -> usize {
 
 unsafe impl GlobalAlloc for MyGlobalAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // TODO : respect alignment
+        // TODO : respect alignment of layout
         assert_eq!(layout.align(), 1);
         let mut alloc = self.0.lock();
         let mut nodes = alloc.nodes;
-        Self::print(&mut nodes, "[alloc] start");
         let mut last_node_opt: NonNull<FreeMemoryNode> = alloc.nodes.unwrap(); // Should panic if no regions
         while let Some(mut non_null_node) = nodes {
             let node = non_null_node;
@@ -83,14 +82,6 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
             if node.as_ref().size >= layout.size() {
                 if layout.size() + core::mem::size_of::<FreeMemoryNode>() < node.as_ref().size {
                     let ptr_new_node = last_node_opt.as_ptr().byte_add(layout.size());
-                    // println!("A1: {:p}", ptr_new_node);
-                    // println!("A2: {}", ptr_new_node.align_offset(core::mem::align_of::<FreeMemoryNode>()));
-                    // ptr_new_node = ptr_new_node.add(ptr_new_node.align_offset(core::mem::align_of::<FreeMemoryNode>()));
-                    // println!("B1: {:p}", ptr_new_node);
-                    // println!("B2: {}", core::usize::MAX);
-                    // println!("B3: {}", core::mem::align_of::<FreeMemoryNode>());
-                    // assert!(ptr_new_node.is_aligned());
-                    // ptr_new_node = align_round_up(ptr_new_node as usize, core::mem::align_of::<FreeMemoryNode>()) as *mut FreeMemoryNode;
                     core::ptr::write_unaligned(
                         ptr_new_node,
                         FreeMemoryNode {
@@ -120,34 +111,32 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        // Todo respect alignment
+        // Todo respect alignment of layout
         assert_eq!(layout.align(), 1);
-        println!("ptr: {:p}", ptr);
-        println!("Size: {}", layout.size());
-        println!("SizeOf<FreeMemoryNode>: {}", core::mem::size_of::<FreeMemoryNode>());
         let mut alloc = self.0.lock();
         let mut nodes = alloc.nodes;
-        Self::print(&mut nodes, "[alloc] start");
         let mut last_node_opt: NonNull<FreeMemoryNode> = alloc.nodes.unwrap();
         while let Some(mut non_null_node) = nodes {
             if ptr.byte_add(layout.size()) == non_null_node.as_ptr().cast() {
                 let merged_size = non_null_node.as_mut().size + layout.size();
-                ptr.cast::<FreeMemoryNode>().write(FreeMemoryNode { next: non_null_node.as_ref().next, size: merged_size });
-                last_node_opt.as_mut().next = Some(NonNull::new(ptr.cast()).unwrap());
-                println!("Merged A");
-                Self::print(&mut alloc.nodes, "[alloc] start");
+                ptr.cast::<FreeMemoryNode>().write_unaligned(FreeMemoryNode { next: non_null_node.as_ref().next, size: merged_size });
+
+                if !alloc.nodes.contains(&last_node_opt) {
+                    last_node_opt.as_mut().next = Some(NonNull::new(ptr.cast()).unwrap());
+                } else {
+                    alloc.nodes = Some(NonNull::new(ptr.cast()).unwrap());
+                }
                 return
             }
             if non_null_node.as_ptr().byte_add(non_null_node.as_ref().size).cast() == ptr {
                 non_null_node.as_mut().size += layout.size();
-                println!("Merged B");
                 return
             }
 
             nodes = non_null_node.as_mut().next;
         }
         if layout.size() >= core::mem::size_of::<FreeMemoryNode>() {
-            core::ptr::write(
+            core::ptr::write_unaligned(
                 ptr.cast(),
                 FreeMemoryNode {
                     next: alloc.nodes,
