@@ -5,7 +5,7 @@ use crate::kalloc::{page_round_down, page_round_up};
 use crate::println;
 use bit_field::BitField;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct VirtualAddr(pub u64);
 
 #[derive(Debug)]

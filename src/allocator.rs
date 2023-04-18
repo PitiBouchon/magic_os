@@ -15,8 +15,8 @@ struct FreeMemoryNode {
 }
 
 struct MyAllocator {
-    start_address: PhysicalAddr,
-    end_address: PhysicalAddr,
+    start_address: VirtualAddr,
+    end_address: VirtualAddr,
     allocated: usize,
     nodes: Option<NonNull<FreeMemoryNode>>,
 }
@@ -24,17 +24,18 @@ struct MyAllocator {
 struct MyGlobalAllocator(Lazy<Mutex<MyAllocator>>);
 
 impl MyGlobalAllocator {
-    pub fn init(&mut self, start_addr: PhysicalAddr, end_addr: PhysicalAddr) {
+    pub fn init(&mut self, start_addr: VirtualAddr, end_addr: VirtualAddr) {
         let mut alloc = self.0.lock();
         alloc.start_address = start_addr;
         alloc.end_address = end_addr;
         let first_page = PAGE_ALLOCATOR.kalloc().unwrap();
         let va = VirtualAddr(usize::from(first_page.addr()) as u64);
         let mut kernel_page_table = KERNEL_PAGE_TABLE.lock();
+        let (pa, _perm) = kernel_page_table.get_phys_addr_perm(&va);
 
         kernel_page_table.map_pages(
-            va,
             alloc.start_address.clone(),
+            pa,
             PAGE_SIZE,
             PTE_READ | PTE_WRITE,
             0,
@@ -90,8 +91,8 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
 #[global_allocator]
 static mut ALLOCATOR: MyGlobalAllocator = MyGlobalAllocator(Lazy::new(|| {
     Mutex::new(MyAllocator {
-        start_address: PhysicalAddr(0),
-        end_address: PhysicalAddr(0),
+        start_address: VirtualAddr(0),
+        end_address: VirtualAddr(0),
         allocated: 0,
         nodes: None,
     })
@@ -101,6 +102,6 @@ pub fn init_heap() {
     println!("Init heap");
 
     unsafe {
-        ALLOCATOR.init(PhysicalAddr(0x100000000), PhysicalAddr(0x110000000));
+        ALLOCATOR.init(VirtualAddr(0x100000000), VirtualAddr(0x110000000));
     }
 }
