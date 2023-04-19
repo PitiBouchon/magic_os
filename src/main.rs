@@ -63,6 +63,19 @@ fn main(_hart_id: usize, dtb: usize) -> ! {
     println!("{}", test);
     drop(test);
 
+    // Todo : refactor this into a function
+    unsafe {
+        // // Enable interrupts to supervisor level (external, timer, software)
+        riscv::register::sie::set_sext(); // SEIE
+        riscv::register::sie::set_stimer(); // STIE
+        riscv::register::sie::set_ssoft(); // SSIE
+        riscv::register::sstatus::set_sie();
+    }
+
+    // Todo : Should use sstc instead
+    let time = riscv::register::time::read64();
+    sbi::timer::set_timer(time + 10000000).unwrap();
+
     println!("---------- Kernel End ----------");
     loop {}
 }

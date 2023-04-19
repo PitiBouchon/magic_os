@@ -24,5 +24,8 @@ fn kernel_trap() {
         Trap::Interrupt(i) => println!("Interrupt: {:?}", i),
         Trap::Exception(e) => println!("Exception: {:?}", e),
     }
-    loop {}
+
+    // Todo : clear STIP in the sip register
+    let time = riscv::register::time::read64();
+    sbi::timer::set_timer(time + 10000000).unwrap();
 }
