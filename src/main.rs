@@ -24,8 +24,9 @@ mod vm;
 use crate::kalloc::PAGE_SIZE;
 use crate::physical_memory_manager::MyMemoryRegion;
 use crate::vm::KERNEL_PAGE_TABLE;
+use alloc::string::String;
+use core::arch::asm;
 use core::panic::PanicInfo;
-use riscv::register::stvec::TrapMode;
 
 const OS_STACK_SIZE: usize = 65536; // Must be the same as in entry.S
 
@@ -35,17 +36,13 @@ struct Stack([u8; OS_STACK_SIZE]);
 #[no_mangle]
 static STACK0: Stack = Stack([0; OS_STACK_SIZE]);
 
-extern "C" {
-    fn kernelvec();
-}
-
 #[no_mangle]
 fn main(_hart_id: usize, dtb: usize) -> ! {
     println!("---------- Kernel Start ----------");
 
     println!("> Setup kernel trap");
     unsafe {
-        riscv::register::stvec::write(kernelvec as usize, TrapMode::Direct);
+        trap::setup_trap();
     }
 
     // DTB THING
@@ -72,9 +69,9 @@ fn main(_hart_id: usize, dtb: usize) -> ! {
         riscv::register::sstatus::set_sie();
     }
 
-    // Todo : Should use sstc instead
-    let time = riscv::register::time::read64();
-    sbi::timer::set_timer(time + 10000000).unwrap();
+    unsafe {
+        trap::enable_timer(&fdt);
+    }
 
     println!("---------- Kernel End ----------");
     loop {}

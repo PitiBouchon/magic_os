@@ -59,22 +59,22 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
         let mut alloc = self.0.lock();
         let mut nodes = &mut alloc.nodes;
         while let Some(mut non_null_node) = *nodes {
-                let node = non_null_node.as_ref();
-                if node.size >= layout.size() {
-                    if layout.size() + core::mem::size_of::<FreeMemoryNode>() <= node.size {
-                        let ptr_new_node = non_null_node.as_ptr().byte_add(layout.size());
-                        ptr_new_node.write_unaligned(FreeMemoryNode {
-                            next: node.next,
-                            size: node.size - layout.size(),
-                        });
-                        let new_node = NonNull::new(ptr_new_node).unwrap();
-                        *nodes = Some(new_node);
-                    } else {
-                        *nodes = node.next;
-                    }
-                    return usize::from(non_null_node.addr()) as *mut u8;
+            let node = non_null_node.as_ref();
+            if node.size >= layout.size() {
+                if layout.size() + core::mem::size_of::<FreeMemoryNode>() <= node.size {
+                    let ptr_new_node = non_null_node.as_ptr().byte_add(layout.size());
+                    ptr_new_node.write_unaligned(FreeMemoryNode {
+                        next: node.next,
+                        size: node.size - layout.size(),
+                    });
+                    let new_node = NonNull::new(ptr_new_node).unwrap();
+                    *nodes = Some(new_node);
+                } else {
+                    *nodes = node.next;
                 }
-                nodes = &mut non_null_node.as_mut().next;
+                return usize::from(non_null_node.addr()) as *mut u8;
+            }
+            nodes = &mut non_null_node.as_mut().next;
         }
 
         // TODO : Should merge contiguous nodes or allocate more pages
@@ -94,28 +94,31 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
                 let ptr_node = ptr.cast::<FreeMemoryNode>();
                 ptr_node.write_unaligned(FreeMemoryNode {
                     next: node.next,
-                    size: merged_size
+                    size: merged_size,
                 });
                 *nodes = Some(NonNull::new(ptr_node).unwrap());
-                return
+                return;
             }
-            if non_null_node.as_ptr().byte_add(non_null_node.as_ref().size).cast() == ptr {
+            if non_null_node
+                .as_ptr()
+                .byte_add(non_null_node.as_ref().size)
+                .cast()
+                == ptr
+            {
                 // The memory deallocated is at the end of the FreeMemoryNode
                 node.size += layout.size();
-                return
+                return;
             }
             nodes = &mut non_null_node.as_mut().next;
             if layout.size() >= core::mem::size_of::<FreeMemoryNode>() {
                 let new_node_ptr = ptr.cast::<FreeMemoryNode>();
-                new_node_ptr.write_unaligned(
-                    FreeMemoryNode {
-                        next: alloc.nodes,
-                        size: layout.size(),
-                    },
-                );
+                new_node_ptr.write_unaligned(FreeMemoryNode {
+                    next: alloc.nodes,
+                    size: layout.size(),
+                });
                 let new_node = NonNull::new(new_node_ptr).unwrap();
                 alloc.nodes = Some(new_node);
-                return
+                return;
             }
             // TODO : Handle small region deallocated
             panic!("Deallocating too small region")

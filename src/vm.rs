@@ -2,7 +2,7 @@ mod page_table;
 pub mod repr;
 
 use crate::kalloc::{page_round_down, page_round_up, PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::{kernelvec, println};
+use crate::println;
 use core::ops::{Deref, DerefMut};
 use fdt::Fdt;
 use page_table::PageTable;
