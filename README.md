@@ -28,10 +28,10 @@ And in another terminal (in this directory) `riscv64-unknown-elf-gdb`
 - [x] Parse the DTB (using a library)
 - [x] Create the page tables
 - [x] Create my own allocator
+- [x] Add timer interrupt (with sstc)
 
 ## Todo
 
-- [ ] Add timer interrupt (with sstc)
-- [ ] Add disk drive support
 - [ ] Add processes and scheduler
+- [ ] Add disk drive support
 - [ ] Add user programs

@@ -27,6 +27,11 @@ pub unsafe fn enable_timer(fdt: &Fdt) {
     }) {
         SSTC_EXENTION = true;
     }
+    // Enable interrupts to supervisor level (external, timer, software)
+    riscv::register::sie::set_sext(); // SEIE
+    riscv::register::sie::set_stimer(); // STIE
+    riscv::register::sie::set_ssoft(); // SSIE
+    riscv::register::sstatus::set_sie();
     timer_init();
 }
 
