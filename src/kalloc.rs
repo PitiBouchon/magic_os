@@ -1,7 +1,5 @@
 use crate::physical_memory_manager::MyMemoryRegion;
-use crate::println;
 use core::alloc::AllocError;
-use core::ops::DerefMut;
 use core::ptr::NonNull;
 use spin::Mutex;
 
@@ -66,12 +64,10 @@ pub static PAGE_ALLOCATOR: StaticPageAllocator = StaticPageAllocator(Mutex::new(
 }));
 
 impl StaticPageAllocator {
-    #[allow(unused)]
     pub fn start_addr(&self) -> usize {
         self.0.lock().start
     }
 
-    #[allow(unused)]
     pub fn end_addr(&self) -> usize {
         self.0.lock().end
     }
@@ -103,7 +99,7 @@ impl StaticPageAllocator {
     }
 }
 
-pub unsafe fn memset(addr: NonNull<usize>, size: usize, value: u8) {
+unsafe fn memset(addr: NonNull<usize>, size: usize, value: u8) {
     let start_addr = usize::from(addr.addr());
     let end_addr = usize::from(addr.addr()) + size;
     for addr in start_addr..end_addr {

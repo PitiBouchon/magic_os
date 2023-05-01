@@ -9,24 +9,33 @@
 #![feature(pointer_is_aligned)]
 #![no_std]
 #![no_main]
-#![allow(unused_imports)]
 
 extern crate alloc;
 
 mod allocator;
+mod cpu;
 mod kalloc;
+mod kernel_trap;
 mod physical_memory_manager;
+mod proc;
 mod sbi_print;
+mod scheduler;
 mod start;
-mod trap;
+mod trapframe;
+mod user_trap;
 mod vm;
 
-use crate::kalloc::PAGE_SIZE;
-use crate::physical_memory_manager::MyMemoryRegion;
-use crate::vm::KERNEL_PAGE_TABLE;
-use alloc::string::String;
-use core::arch::asm;
+use crate::cpu::{init_cpus, read_tp, write_tp};
+use crate::proc::Proc;
+use crate::scheduler::SCHEDULER;
+use alloc::vec;
 use core::panic::PanicInfo;
+use spin::Once;
+
+const INITCODE: [u8; 32] = [
+    0x13, 0x05, 0xd0, 0x00, 0x93, 0x05, 0x40, 0x01, 0x93, 0x08, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00,
+    0x6f, 0x00, 0x00, 0x00, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x6c, 0x64, 0x21,
+];
 
 const OS_STACK_SIZE: usize = 65536; // Must be the same as in entry.S
 
@@ -36,16 +45,22 @@ struct Stack([u8; OS_STACK_SIZE]);
 #[no_mangle]
 static STACK0: Stack = Stack([0; OS_STACK_SIZE]);
 
+pub static HART_ID: Once<usize> = Once::new();
+
 #[no_mangle]
-fn main(_hart_id: usize, dtb: usize) -> ! {
+fn main(hart_id: usize, dtb: usize) -> ! {
     println!("---------- Kernel Start ----------");
+
+    println!("> Set hart id {}", hart_id);
+    write_tp(hart_id);
+    println!("tp regiser: {}", read_tp());
 
     println!("> Setup kernel trap");
     unsafe {
-        trap::setup_trap();
+        kernel_trap::setup_trap();
     }
 
-    // DTB THING
+    // Parse the DTB
     println!("Init Fdt Header");
     let fdt = unsafe { fdt::Fdt::from_ptr(dtb as *const u8).unwrap() };
 
@@ -55,17 +70,31 @@ fn main(_hart_id: usize, dtb: usize) -> ! {
     }
     vm::init_paging(&fdt);
     allocator::init_heap();
+    // After that it is possible to allocate memory
 
-    let test = alloc::string::String::from("Hello World !");
-    println!("{}", test);
+    let test1 = alloc::string::String::from("Hello World !");
+    // println!("{}", test1);
+
+    let test = vec![0, 1];
+    // println!("{:?}", test);
     drop(test);
+    drop(test1);
 
-    unsafe {
-        trap::enable_timer(&fdt);
-    }
+    println!("> Init Cpus");
+    init_cpus(&fdt);
+
+    // unsafe {
+    //     kernel_trap::enable_timer(&fdt);
+    // }
 
     println!("---------- Kernel End ----------");
-    loop {}
+
+    let test_proc = Proc::init_user_proc(&INITCODE);
+    SCHEDULER.add_proc(test_proc);
+    println!("Scheduling..");
+    SCHEDULER.schedule()
+
+    // loop {}
 }
 
 #[panic_handler]

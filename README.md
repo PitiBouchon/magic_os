@@ -34,4 +34,4 @@ And in another terminal (in this directory) `riscv64-unknown-elf-gdb`
 
 - [ ] Add processes and scheduler
 - [ ] Add disk drive support
-- [ ] Add user programs
+- [ ] Add some user programs

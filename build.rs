@@ -5,4 +5,6 @@ fn main() {
     // Rebuild if assembly target changed
     println!("cargo:rerun-if-changed=src/asm/entry.S");
     println!("cargo:rerun-if-changed=src/asm/kernelvec.S");
+    println!("cargo:rerun-if-changed=src/asm/switch.S");
+    println!("cargo:rerun-if-changed=src/asm/trampoline.S");
 }

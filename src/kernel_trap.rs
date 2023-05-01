@@ -1,10 +1,10 @@
 use crate::println;
-use bit_field::BitField;
 use core::arch::asm;
 use fdt::Fdt;
-use riscv::register::scause::{Exception, Interrupt, Scause, Trap};
+use riscv::register::scause::{Interrupt, Scause, Trap};
 use riscv::register::sstatus::{Sstatus, SPP};
 use riscv::register::stvec::TrapMode;
+use spin::Once;
 
 core::arch::global_asm!(include_str!("asm/kernelvec.S"));
 
@@ -17,18 +17,20 @@ pub unsafe fn setup_trap() {
 }
 
 pub unsafe fn enable_timer(fdt: &Fdt) {
-    if fdt.cpus().all(|cpu| {
-        if let Some(ext_prop) = cpu.property("riscv,isa") {
-            if let Ok(isa) = core::str::from_utf8(ext_prop.value) {
-                return isa.contains("sstc");
+    SSTC_EXENTION.call_once(|| {
+        fdt.cpus().all(|cpu| {
+            if let Some(ext_prop) = cpu.property("riscv,isa") {
+                if let Ok(isa) = core::str::from_utf8(ext_prop.value) {
+                    return isa.contains("sstc");
+                }
             }
-        }
-        false
-    }) {
-        SSTC_EXENTION = true;
-    }
+            false
+        })
+    });
+
     // Enable interrupts to supervisor level (external, timer, software)
-    riscv::register::sie::set_sext(); // SEIE
+    // TODO : uncomment line
+    // riscv::register::sie::set_sext(); // SEIE
     riscv::register::sie::set_stimer(); // STIE
     riscv::register::sie::set_ssoft(); // SSIE
     riscv::register::sstatus::set_sie();
@@ -41,16 +43,16 @@ unsafe fn write_stimecmp(time: u64) {
 
 unsafe fn timer_init() {
     const SCHED_INTERVAL: u64 = 10_000_000;
-    if SSTC_EXENTION {
+    if *SSTC_EXENTION.get().unwrap() {
         write_stimecmp(riscv::register::time::read64() + SCHED_INTERVAL);
     } else {
         sbi::timer::set_timer(riscv::register::time::read64() + SCHED_INTERVAL).unwrap();
     }
 }
 
-// TODO : check if Once could be used
-static mut SSTC_EXENTION: bool = false;
+static SSTC_EXENTION: Once<bool> = Once::new();
 
+// TODO : disable interrupt during a trap I guess
 #[no_mangle]
 fn kernel_trap() {
     let _sepc: usize = riscv::register::sepc::read();

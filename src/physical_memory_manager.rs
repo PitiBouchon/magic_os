@@ -1,5 +1,5 @@
 use crate::kalloc::page_round_up;
-use crate::{print, println};
+use crate::println;
 use fdt::node::MemoryReservation;
 use fdt::standard_nodes::MemoryRegion;
 use fdt::Fdt;
