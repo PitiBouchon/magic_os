@@ -7,10 +7,10 @@ pub const MAX_VIRTUAL_ADDR: u64 = 1 << (9 + 9 + 9 + 12 - 1);
 pub struct VirtualAddr(u64);
 
 #[derive(Debug)]
-pub(super) struct VirtualPageNumber(pub(super) u16);
+pub(in crate::vm::page_table) struct VirtualPageNumber(pub(in crate::vm::page_table) u16);
 
 #[derive(Debug)]
-pub struct PageOffset(pub u16);
+pub(in crate::vm::page_table) struct PageOffset(pub(super) u16);
 
 impl VirtualAddr {
     pub const fn new(val: u64) -> Self {
@@ -44,7 +44,9 @@ impl VirtualAddr {
         VirtualAddr(page_round_up(self.0))
     }
 
-    pub(super) fn virtual_page_numbers(&self) -> [VirtualPageNumber; 3] {
+    pub(in super::super::super::page_table) fn virtual_page_numbers(
+        &self,
+    ) -> [VirtualPageNumber; 3] {
         [
             VirtualPageNumber(self.0.get_bits(12..21) as u16),
             VirtualPageNumber(self.0.get_bits(21..30) as u16),
@@ -52,13 +54,13 @@ impl VirtualAddr {
         ]
     }
 
-    pub(super) fn page_offset(&self) -> PageOffset {
+    pub(in super::super::super::page_table) fn page_offset(&self) -> PageOffset {
         PageOffset((self.0.get_bits(0..12)) as u16)
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct PhysicalAddr(pub(super) u64);
+pub struct PhysicalAddr(pub(in super::super::super::page_table) u64);
 
 impl PhysicalAddr {
     pub fn new(val: u64) -> Self {
@@ -70,7 +72,7 @@ impl PhysicalAddr {
 }
 
 #[derive(Debug)]
-pub struct Ppn(pub(super) u64);
+pub struct Ppn(pub(in super::super::super::page_table) u64);
 
 impl Ppn {
     pub fn get(&self) -> u64 {
@@ -91,7 +93,7 @@ impl PhysicalAddr {
         PhysicalAddr(page_round_up(self.0))
     }
 
-    pub fn page_offset(&self) -> PageOffset {
+    pub(in super::super::super::page_table) fn page_offset(&self) -> PageOffset {
         PageOffset((self.0.get_bits(0..12)) as u16)
     }
 

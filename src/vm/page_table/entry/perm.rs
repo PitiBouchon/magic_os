@@ -1,14 +1,14 @@
 use bit_field::BitField;
 use core::ops::BitOr;
 
-pub(super) const PTE_BIT_VALID: usize = 0;
-pub(super) const PTE_BIT_READ: usize = 1;
-pub(super) const PTE_BIT_WRITE: usize = 2;
-pub(super) const PTE_BIT_EXECUTE: usize = 3;
-pub(super) const PTE_BIT_USER: usize = 4;
+pub const PTE_BIT_VALID: usize = 0;
+pub const PTE_BIT_READ: usize = 1;
+pub const PTE_BIT_WRITE: usize = 2;
+pub const PTE_BIT_EXECUTE: usize = 3;
+pub const PTE_BIT_USER: usize = 4;
 
 #[derive(Debug, Copy, Clone)]
-pub struct PTEPermission(pub(super) u8);
+pub struct PTEPermission(pub u8);
 
 impl PTEPermission {
     pub fn new() -> Self {

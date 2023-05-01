@@ -3,7 +3,7 @@
 
 use crate::kalloc::{page_round_down, page_round_up};
 use crate::println;
-use crate::vm::page_table::addr::{PageOffset, PhysicalAddr, Ppn};
+use crate::vm::page_table::entry::addr::{PageOffset, PhysicalAddr, Ppn};
 use crate::vm::page_table::entry::perm::{
     PTE_BIT_EXECUTE, PTE_BIT_READ, PTE_BIT_VALID, PTE_BIT_WRITE,
 };
@@ -11,6 +11,7 @@ use bit_field::BitField;
 use core::ops::{BitAnd, BitOr, BitOrAssign};
 use perm::PTEPermission;
 
+pub mod addr;
 pub mod perm;
 
 #[derive(Debug, Clone)]
@@ -32,7 +33,10 @@ impl PageTableEntry {
         Self(value)
     }
 
-    pub(crate) fn convert_to_physical_addr(&self, offset: &PageOffset) -> PhysicalAddr {
+    pub(in super::super::page_table) fn convert_to_physical_addr(
+        &self,
+        offset: &PageOffset,
+    ) -> PhysicalAddr {
         let mut res = 0u64;
         res.set_bits(0..12, offset.0 as u64);
         res.set_bits(12..55, self.ppn().0);

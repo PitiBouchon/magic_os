@@ -1,7 +1,7 @@
 use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
 use crate::trapframe::TrapFrame;
 use crate::user_trap::usertrapret;
-use crate::vm::page_table::addr::VirtualAddr;
+use crate::vm::page_table::entry::addr::VirtualAddr;
 use crate::vm::page_table::entry::perm::PTEPermission;
 use crate::vm::page_table::PageTable;
 use crate::vm::{new_user_page_table, KERNEL_PAGE_TABLE};

@@ -1,7 +1,7 @@
 use crate::cpu::{get_cpu, get_cpuid};
 use crate::println;
 use crate::trapframe::TrapFrame;
-use crate::vm::page_table::addr::PhysicalAddr;
+use crate::vm::page_table::entry::addr::PhysicalAddr;
 use crate::vm::{TRAMPOLINE, TRAPFRAME};
 use bit_field::BitField;
 use riscv::register::satp::Mode;

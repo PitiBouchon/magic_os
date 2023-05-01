@@ -1,9 +1,8 @@
 use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::vm::page_table::addr::{PhysicalAddr, VirtualAddr, VirtualPageNumber};
 use crate::vm::page_table::entry::perm::PTEPermission;
 use crate::vm::page_table::entry::{EntryKind, PageTableEntry};
+use entry::addr::{PhysicalAddr, VirtualAddr, VirtualPageNumber};
 
-pub mod addr;
 pub mod entry;
 
 // 4096 bytes (PAGE_SIZE) / 8 bytes (64 bits) per entry = 512 entries

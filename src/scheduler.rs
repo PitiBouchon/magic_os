@@ -1,6 +1,6 @@
 use crate::cpu::get_cpu;
-use crate::proc::{Proc, ProcContext, ProcState};
 use crate::println;
+use crate::proc::{Proc, ProcContext, ProcState};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ops::DerefMut;

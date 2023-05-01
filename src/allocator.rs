@@ -1,8 +1,9 @@
 use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::vm::page_table::addr::VirtualAddr;
+use crate::vm::page_table::entry::addr::VirtualAddr;
+// use crate::vm::page_table::entry::perm::PTEPermission;
+use crate::println;
 use crate::vm::page_table::entry::perm::PTEPermission;
 use crate::vm::KERNEL_PAGE_TABLE;
-use crate::println;
 use core::alloc::{GlobalAlloc, Layout};
 use core::mem::size_of;
 use core::ptr::NonNull;
