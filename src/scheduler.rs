@@ -1,10 +1,10 @@
 use crate::cpu::get_cpu;
-use crate::println;
 use crate::proc::{Proc, ProcContext, ProcState};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::ops::DerefMut;
 use spin::Mutex;
+use sbi_print::println;
 
 core::arch::global_asm!(include_str!("asm/switch.S"));
 

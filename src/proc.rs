@@ -1,15 +1,15 @@
-use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
 use crate::trapframe::TrapFrame;
 use crate::user_trap::usertrapret;
-use crate::vm::page_table::entry::addr::VirtualAddr;
-use crate::vm::page_table::entry::perm::PTEPermission;
-use crate::vm::page_table::PageTable;
 use crate::vm::{new_user_page_table, KERNEL_PAGE_TABLE};
 use alloc::boxed::Box;
 use alloc::string::String;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::usize;
+use page_alloc::{PAGE_ALLOCATOR, PAGE_SIZE};
+use page_table::entry::addr::VirtualAddr;
+use page_table::entry::perm::PTEPermission;
+use page_table::PageTable;
 
 core::arch::global_asm!(include_str!("asm/trampoline.S"));
 

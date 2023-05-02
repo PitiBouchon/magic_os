@@ -1,5 +1,5 @@
-use crate::kalloc::{page_round_down, page_round_up};
 use bit_field::BitField;
+use page_alloc::{page_round_down, page_round_up};
 
 pub const MAX_VIRTUAL_ADDR: u64 = 1 << (9 + 9 + 9 + 12 - 1);
 
@@ -7,10 +7,10 @@ pub const MAX_VIRTUAL_ADDR: u64 = 1 << (9 + 9 + 9 + 12 - 1);
 pub struct VirtualAddr(u64);
 
 #[derive(Debug)]
-pub(in crate::vm::page_table) struct VirtualPageNumber(pub(in crate::vm::page_table) u16);
+pub(in super::super) struct VirtualPageNumber(pub(in super::super) u16);
 
 #[derive(Debug)]
-pub(in crate::vm::page_table) struct PageOffset(pub(super) u16);
+pub(in super::super) struct PageOffset(pub(super) u16);
 
 impl VirtualAddr {
     pub const fn new(val: u64) -> Self {
@@ -44,7 +44,7 @@ impl VirtualAddr {
         VirtualAddr(page_round_up(self.0))
     }
 
-    pub(in super::super::super::page_table) fn virtual_page_numbers(
+    pub(in super::super) fn virtual_page_numbers(
         &self,
     ) -> [VirtualPageNumber; 3] {
         [
@@ -54,13 +54,13 @@ impl VirtualAddr {
         ]
     }
 
-    pub(in super::super::super::page_table) fn page_offset(&self) -> PageOffset {
+    pub(in super::super) fn page_offset(&self) -> PageOffset {
         PageOffset((self.0.get_bits(0..12)) as u16)
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct PhysicalAddr(pub(in super::super::super::page_table) u64);
+pub struct PhysicalAddr(pub(in super::super) u64);
 
 impl PhysicalAddr {
     pub fn new(val: u64) -> Self {
@@ -72,7 +72,7 @@ impl PhysicalAddr {
 }
 
 #[derive(Debug)]
-pub struct Ppn(pub(in super::super::super::page_table) u64);
+pub struct Ppn(pub(in super::super) u64);
 
 impl Ppn {
     pub fn get(&self) -> u64 {
@@ -93,7 +93,7 @@ impl PhysicalAddr {
         PhysicalAddr(page_round_up(self.0))
     }
 
-    pub(in super::super::super::page_table) fn page_offset(&self) -> PageOffset {
+    pub(in super::super) fn page_offset(&self) -> PageOffset {
         PageOffset((self.0.get_bits(0..12)) as u16)
     }
 

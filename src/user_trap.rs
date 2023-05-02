@@ -1,7 +1,5 @@
 use crate::cpu::{get_cpu, get_cpuid};
-use crate::println;
 use crate::trapframe::TrapFrame;
-use crate::vm::page_table::entry::addr::PhysicalAddr;
 use crate::vm::{TRAMPOLINE, TRAPFRAME};
 use bit_field::BitField;
 use riscv::register::satp::Mode;
@@ -9,6 +7,8 @@ use riscv::register::scause::Exception::UserEnvCall;
 use riscv::register::scause::Trap;
 use riscv::register::sstatus::SPP;
 use riscv::register::stvec::TrapMode;
+use page_table::entry::addr::PhysicalAddr;
+use sbi_print::println;
 
 extern "C" {
     fn uservec();

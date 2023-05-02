@@ -12,13 +12,10 @@
 
 extern crate alloc;
 
-mod allocator;
+// mod allocator;
 mod cpu;
-mod kalloc;
 mod kernel_trap;
-mod physical_memory_manager;
 mod proc;
-mod sbi_print;
 mod scheduler;
 mod start;
 mod trapframe;
@@ -29,8 +26,12 @@ use crate::cpu::{init_cpus, read_tp, write_tp};
 use crate::proc::Proc;
 use crate::scheduler::SCHEDULER;
 use alloc::vec;
+use core::ops::Deref;
 use core::panic::PanicInfo;
 use spin::Once;
+use page_alloc::physical_memory_manager;
+use sbi_print::println;
+use crate::vm::KERNEL_PAGE_TABLE;
 
 const INITCODE: [u8; 32] = [
     0x13, 0x05, 0xd0, 0x00, 0x93, 0x05, 0x40, 0x01, 0x93, 0x08, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00,
@@ -66,10 +67,10 @@ fn main(hart_id: usize, dtb: usize) -> ! {
 
     let free_memory_region = physical_memory_manager::get_free_memory(&fdt);
     unsafe {
-        kalloc::init_page_allocator(free_memory_region);
+        page_alloc::init_page_allocator(free_memory_region);
     }
     vm::init_paging(&fdt);
-    allocator::init_heap();
+    allocator::init_heap(KERNEL_PAGE_TABLE.deref());
     // After that it is possible to allocate memory
 
     let test1 = alloc::string::String::from("Hello World !");

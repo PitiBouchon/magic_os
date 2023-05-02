@@ -1,17 +1,17 @@
-pub mod page_table;
+// pub mod page_table;
 
-use crate::kalloc::{page_round_up, PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::println;
 use crate::trapframe::TrapFrame;
-use crate::vm::page_table::entry::perm::PTEPermission;
 use alloc::boxed::Box;
 use core::ops::Deref;
 use fdt::Fdt;
 use page_table::entry::addr::MAX_VIRTUAL_ADDR;
 use page_table::entry::addr::{PhysicalAddr, VirtualAddr};
-use page_table::PageTable;
 use riscv::register::satp::Mode;
 use spin::{Lazy, Mutex};
+use page_alloc::{PAGE_ALLOCATOR, page_round_up, PAGE_SIZE};
+use page_table::entry::perm::PTEPermission;
+use page_table::PageTable;
+use sbi_print::println;
 
 pub const TRAMPOLINE: VirtualAddr = VirtualAddr::new(MAX_VIRTUAL_ADDR - PAGE_SIZE as u64);
 pub const TRAPFRAME: VirtualAddr = TRAMPOLINE.sub_offset(PAGE_SIZE as u64);
@@ -128,8 +128,6 @@ pub fn init_paging(_fdt: &Fdt) {
     println!("Setup Trampoline: 0x{:x}", trampoline_addr);
 
     let start_memory = PAGE_ALLOCATOR.start_addr();
-    let memory_size = PAGE_ALLOCATOR.end_addr() - start_memory;
-    assert!(memory_size > 0);
     assert!(start_memory >= kernel_end_addr as usize);
     kernel_page_table.map_pages(
         TRAMPOLINE,

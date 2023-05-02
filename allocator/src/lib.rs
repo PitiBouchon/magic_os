@@ -1,15 +1,18 @@
-use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::vm::page_table::entry::addr::VirtualAddr;
-// use crate::vm::page_table::entry::perm::PTEPermission;
-use crate::println;
-use crate::vm::page_table::entry::perm::PTEPermission;
-use crate::vm::KERNEL_PAGE_TABLE;
+#![feature(pointer_byte_offsets)]
+#![feature(strict_provenance)]
+#![no_std]
+
 use core::alloc::{GlobalAlloc, Layout};
 use core::mem::size_of;
 use core::ptr::NonNull;
 use core::usize;
+use page_alloc::{PAGE_ALLOCATOR, PAGE_SIZE};
+use page_table::entry::addr::VirtualAddr;
+use page_table::entry::perm::PTEPermission;
+use sbi_print::println;
 use spin::lazy::Lazy;
-use spin::Mutex;
+use spin::{Mutex, MutexGuard};
+use page_table::PageTable;
 
 struct FreeMemoryNode {
     next: Option<NonNull<FreeMemoryNode>>,
@@ -21,18 +24,20 @@ struct MyAllocator {
     end_address: VirtualAddr,
     allocated: usize,
     nodes: Option<NonNull<FreeMemoryNode>>,
+    kernel_page_table: Option<&'static Mutex<&'static mut PageTable>>
 }
 
 struct MyGlobalAllocator(Lazy<Mutex<MyAllocator>>);
 
 impl MyGlobalAllocator {
-    pub fn init(&mut self, start_addr: VirtualAddr, end_addr: VirtualAddr) {
+    pub fn init(&mut self, start_addr: VirtualAddr, end_addr: VirtualAddr, kernel_page_table: &'static Mutex<&'static mut PageTable>) {
         let mut alloc = self.0.lock();
+        alloc.kernel_page_table = Some(kernel_page_table);
         alloc.start_address = start_addr;
         alloc.end_address = end_addr;
         let first_page = PAGE_ALLOCATOR.kalloc().unwrap();
         let va = VirtualAddr::new(usize::from(first_page.addr()) as u64);
-        let mut kernel_page_table = KERNEL_PAGE_TABLE.lock();
+        let mut kernel_page_table = alloc.kernel_page_table.unwrap().lock();
         let (pa, _perm) = kernel_page_table.get_phys_addr_perm(&va);
 
         kernel_page_table.map_pages(
@@ -56,6 +61,23 @@ impl MyGlobalAllocator {
 
 unsafe impl GlobalAlloc for MyGlobalAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        assert!(layout.align() > 0, "Align is 0");
+        assert_eq!(
+            layout.align() & (layout.align() - 1),
+            0,
+            "Align is not a power of 2"
+        );
+        let alloc_size = if layout.size() % size_of::<FreeMemoryNode>() != 0 {
+            layout.size()
+                + (size_of::<FreeMemoryNode>() - layout.size() % size_of::<FreeMemoryNode>())
+        } else {
+            layout.size()
+        };
+        assert_eq!(
+            alloc_size % size_of::<FreeMemoryNode>(),
+            0,
+            "Alloc_size is not a multiple of size_of::<FreeMemoryNode>()"
+        );
         let mut alloc = self.0.lock();
         let mut nodes = &mut alloc.nodes;
         while let Some(mut non_null_node) = *nodes {
@@ -63,9 +85,9 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
             let diff_align = ptr.align_offset(layout.align());
             ptr = ptr.byte_add(diff_align);
             let node = non_null_node.as_ref();
-            if node.size >= layout.size() + diff_align {
-                if layout.size() + core::mem::size_of::<FreeMemoryNode>() <= node.size {
-                    let ptr_new_node = non_null_node.as_ptr().byte_add(layout.size() + diff_align);
+            if node.size >= alloc_size + diff_align {
+                if alloc_size + size_of::<FreeMemoryNode>() <= node.size {
+                    let ptr_new_node = non_null_node.as_ptr().byte_add(alloc_size + diff_align);
                     ptr_new_node.write_unaligned(FreeMemoryNode {
                         next: node.next,
                         size: node.size - layout.size() - diff_align,
@@ -74,6 +96,10 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
                     *nodes = Some(new_node);
                 } else {
                     *nodes = node.next;
+                    assert_eq!(
+                        alloc_size, node.size,
+                        "Alloc_size should be equal to node.size here"
+                    );
                 }
                 return ptr;
             }
@@ -86,7 +112,7 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
         let new_page = PAGE_ALLOCATOR.kalloc().unwrap();
         let va = VirtualAddr::new(usize::from(new_page.addr()) as u64);
 
-        let mut kernel_page_table = KERNEL_PAGE_TABLE.lock();
+        let mut kernel_page_table = alloc.kernel_page_table.unwrap().lock();
         let (pa, _perm) = kernel_page_table.get_phys_addr_perm(&va);
 
         kernel_page_table.map_pages(
@@ -114,8 +140,25 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         // TODO : Is alignement useful here ?
+        assert!(layout.align() > 0, "Align is 0");
+        assert_eq!(
+            layout.align() & (layout.align() - 1),
+            0,
+            "Align is not a power of 2"
+        );
+        let alloc_size = if layout.size() % size_of::<FreeMemoryNode>() != 0 {
+            layout.size()
+                + (size_of::<FreeMemoryNode>() - layout.size() % size_of::<FreeMemoryNode>())
+        } else {
+            layout.size()
+        };
+        assert_eq!(
+            alloc_size % size_of::<FreeMemoryNode>(),
+            0,
+            "Alloc_size is not a multiple of size_of::<FreeMemoryNode>()"
+        );
         let ptr_start = ptr.addr();
-        let ptr_end = ptr.byte_add(layout.size()).addr();
+        let ptr_end = ptr.byte_add(alloc_size).addr();
         let mut alloc = self.0.lock();
         let mut nodes = &mut alloc.nodes;
         while let Some(mut non_null_node) = *nodes {
@@ -139,7 +182,7 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
             }
             nodes = &mut non_null_node.as_mut().next;
         }
-        if layout.size() >= size_of::<FreeMemoryNode>() {
+        if alloc_size >= size_of::<FreeMemoryNode>() {
             println!("Merge NOWHERE");
             let new_node_ptr = ptr.cast::<FreeMemoryNode>();
             new_node_ptr.write_unaligned(FreeMemoryNode {
@@ -165,13 +208,16 @@ static mut ALLOCATOR: MyGlobalAllocator = MyGlobalAllocator(Lazy::new(|| {
         end_address: VirtualAddr::new(0),
         allocated: 0,
         nodes: None,
+        kernel_page_table: None,
     })
 }));
 
-pub fn init_heap() {
+pub fn init_heap(kernel_page_table: &'static Mutex<&'static mut PageTable>) {
     println!("Init heap");
 
     unsafe {
-        ALLOCATOR.init(VirtualAddr::new(0x100000000), VirtualAddr::new(0x110000000));
+        ALLOCATOR.init(VirtualAddr::new(0x100000000), VirtualAddr::new(0x110000000), kernel_page_table);
     }
+
+    println!("End init heap !");
 }

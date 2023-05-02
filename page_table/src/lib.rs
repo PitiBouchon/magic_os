@@ -1,7 +1,9 @@
-use crate::kalloc::{PAGE_ALLOCATOR, PAGE_SIZE};
-use crate::vm::page_table::entry::perm::PTEPermission;
-use crate::vm::page_table::entry::{EntryKind, PageTableEntry};
+#![no_std]
+
 use entry::addr::{PhysicalAddr, VirtualAddr, VirtualPageNumber};
+use page_alloc::{PAGE_ALLOCATOR, PAGE_SIZE};
+use crate::entry::{EntryKind, PageTableEntry};
+use crate::entry::perm::PTEPermission;
 
 pub mod entry;
 
@@ -10,7 +12,7 @@ const ENTRY_COUNT: u16 = 512;
 
 #[derive(Debug)]
 #[repr(align(4096))]
-pub(crate) struct PageTable([PageTableEntry; ENTRY_COUNT as usize]);
+pub struct PageTable([PageTableEntry; ENTRY_COUNT as usize]);
 
 impl PageTable {
     pub const fn new() -> Self {
@@ -109,3 +111,5 @@ impl PageTable {
         entry
     }
 }
+
+// TODO : Add free pagetable with impl Drop

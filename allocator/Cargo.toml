@@ -1,0 +1,12 @@
+[package]
+name = "allocator"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+spin = "0.9.6"
+page_alloc = { path = "../page_alloc" }
+sbi_print = { path = "../sbi_print" }
+page_table = { path = "../page_table" }

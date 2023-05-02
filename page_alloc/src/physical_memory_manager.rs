@@ -1,8 +1,8 @@
-use crate::kalloc::page_round_up;
-use crate::println;
 use fdt::node::MemoryReservation;
 use fdt::standard_nodes::MemoryRegion;
 use fdt::Fdt;
+use sbi_print::println;
+use crate::{MyMemoryRegion, page_round_up};
 
 extern "C" {
     static _kernel_end: u8;
@@ -18,12 +18,6 @@ fn parse_reg(values: &[u8]) -> (u64, u64) {
     let size = unsafe { core::mem::transmute::<[u8; 8], u64>(*size_values) }.to_be();
 
     (address, size)
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct MyMemoryRegion {
-    pub address: u64,
-    pub size: u64,
 }
 
 impl TryFrom<MemoryRegion> for MyMemoryRegion {

@@ -1,10 +1,10 @@
-use crate::println;
 use core::arch::asm;
 use fdt::Fdt;
 use riscv::register::scause::{Interrupt, Scause, Trap};
 use riscv::register::sstatus::{Sstatus, SPP};
 use riscv::register::stvec::TrapMode;
 use spin::Once;
+use sbi_print::println;
 
 core::arch::global_asm!(include_str!("asm/kernelvec.S"));
 

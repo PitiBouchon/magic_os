@@ -1,7 +1,19 @@
-use crate::physical_memory_manager::MyMemoryRegion;
+#![feature(allocator_api)]
+#![feature(slice_as_chunks)]
+#![feature(strict_provenance)]
+#![no_std]
+
+pub mod physical_memory_manager;
+
 use core::alloc::AllocError;
 use core::ptr::NonNull;
 use spin::Mutex;
+
+#[derive(Debug, Copy, Clone)]
+pub struct MyMemoryRegion {
+    pub address: u64,
+    pub size: u64,
+}
 
 pub const PAGE_SIZE: usize = 4096;
 

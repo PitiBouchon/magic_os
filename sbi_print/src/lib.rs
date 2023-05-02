@@ -1,3 +1,5 @@
+#![no_std]
+
 fn sbi_print_str(s: &str) {
     for c in s.bytes() {
         if c.is_ascii() {
@@ -8,7 +10,8 @@ fn sbi_print_str(s: &str) {
 
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::sbi_print::_print(format_args!($($arg)*)));
+    // ($($arg:tt)*) => ($crate::sbi_print::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => (sbi_print::_print(format_args!($($arg)*)));
 }
 
 #[macro_export]

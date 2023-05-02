@@ -1,15 +1,11 @@
 // See : The RISCV Privileged Manual
 #![allow(unused)]
 
-use crate::kalloc::{page_round_down, page_round_up};
-use crate::println;
-use crate::vm::page_table::entry::addr::{PageOffset, PhysicalAddr, Ppn};
-use crate::vm::page_table::entry::perm::{
-    PTE_BIT_EXECUTE, PTE_BIT_READ, PTE_BIT_VALID, PTE_BIT_WRITE,
-};
 use bit_field::BitField;
 use core::ops::{BitAnd, BitOr, BitOrAssign};
 use perm::PTEPermission;
+use crate::entry::addr::{PageOffset, PhysicalAddr, Ppn};
+use crate::entry::perm::{PTE_BIT_EXECUTE, PTE_BIT_READ, PTE_BIT_VALID, PTE_BIT_WRITE};
 
 pub mod addr;
 pub mod perm;
@@ -33,7 +29,7 @@ impl PageTableEntry {
         Self(value)
     }
 
-    pub(in super::super::page_table) fn convert_to_physical_addr(
+    pub(in super) fn convert_to_physical_addr(
         &self,
         offset: &PageOffset,
     ) -> PhysicalAddr {
