@@ -139,7 +139,6 @@ unsafe impl GlobalAlloc for MyGlobalAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        // TODO : Is alignement useful here ?
         assert!(layout.align() > 0, "Align is 0");
         assert_eq!(
             layout.align() & (layout.align() - 1),

@@ -12,7 +12,6 @@
 
 extern crate alloc;
 
-// mod allocator;
 mod cpu;
 mod kernel_trap;
 mod proc;

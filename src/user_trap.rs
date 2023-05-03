@@ -13,7 +13,7 @@ use sbi_print::println;
 extern "C" {
     fn uservec();
     fn userret();
-    pub fn trampoline();
+    fn trampoline();
 }
 
 #[no_mangle]
@@ -49,12 +49,11 @@ pub unsafe fn usertrapret() {
             .ppn()
             .get(),
     ); // PPN
-    let a = proc.page_table.as_ref() as *const _ as u64;
-    assert!(a < 0x100000000000);
 
     let userret = *TRAMPOLINE.get() as usize + userret as usize - trampoline as usize;
     let fp = userret as *const ();
     let code: fn(u64, u64) = core::mem::transmute(fp);
+    drop(cpu);
     code(*TRAPFRAME.get(), satp)
 }
 

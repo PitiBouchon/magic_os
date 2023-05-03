@@ -29,8 +29,7 @@ pub unsafe fn enable_timer(fdt: &Fdt) {
     });
 
     // Enable interrupts to supervisor level (external, timer, software)
-    // TODO : uncomment line
-    // riscv::register::sie::set_sext(); // SEIE
+    riscv::register::sie::set_sext(); // SEIE
     riscv::register::sie::set_stimer(); // STIE
     riscv::register::sie::set_ssoft(); // SSIE
     riscv::register::sstatus::set_sie();

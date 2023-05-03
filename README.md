@@ -29,9 +29,10 @@ And in another terminal (in this directory) `riscv64-unknown-elf-gdb`
 - [x] Create the page tables
 - [x] Create my own allocator
 - [x] Add timer interrupt (with sstc)
+- [x] Add processes and scheduler
 
 ## Todo
 
-- [ ] Add processes and scheduler
 - [ ] Add disk drive support
 - [ ] Add some user programs
+- [ ] Better scheduler

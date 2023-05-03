@@ -52,6 +52,7 @@ impl Scheduler {
                     let mut used_list = self.used.lock();
                     let proc = cpu.proc.take().unwrap();
                     used_list.push(*proc); // Could do `Box::<Proc>::into_inner(proc)` instead
+                    drop(cpu_guard);
                 }
                 None => unsafe {
                     riscv::asm::wfi();
