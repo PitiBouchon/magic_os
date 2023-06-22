@@ -1,5 +1,7 @@
 # MagicOs
 
+# This was a first attempt at making an OS with a lot of inspiration from XV6, see [BasicOc](https://github.com/PitiBouchon/basic_os) for my new project
+
 Just for fun !
 
 Inspirations from [xv6-riscv](https://github.com/mit-pdos/xv6-riscv), [rrxv6](https://github.com/yodalee/rrxv6), [Writing an OS in Rust](https://os.phil-opp.com) and [vanadinite](https://github.com/repnop/vanadinite)
