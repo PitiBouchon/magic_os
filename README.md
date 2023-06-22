@@ -1,6 +1,6 @@
 # MagicOs
 
-# This was a first attempt at making an OS with a lot of inspiration from XV6, see [BasicOc](https://github.com/PitiBouchon/basic_os) for my new project
+# This was a first attempt at making an OS with a lot of inspiration from XV6, see [BasicOs](https://github.com/PitiBouchon/basic_os) for my new project
 
 Just for fun !
 
